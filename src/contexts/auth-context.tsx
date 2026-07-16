@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   })
 
-  const isClerkLoaded = clerkAuth.isLoaded && clerk.client
+  const isClerkLoaded = clerkAuth.isLoaded && clerkUser.isLoaded && clerk.client
   const hasClerkParams = typeof window !== "undefined" && window.location.search.includes("__clerk_")
 
   // Fast loading: if we have cached details, don't show the blocking loading page spinner
@@ -87,12 +87,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     : (cachedData?.role || "org:member")
 
   // Helper: Seed temporary user session cache to prevent guard redirect loops
-  const seedTempUserCache = (emailAddress: string, firstName = "Loading", lastName = "") => {
+  const seedTempUserCache = (emailAddress: string, firstName = "", lastName = "") => {
+    let resolvedFirst = firstName
+    let resolvedLast = lastName
+
+    if (!resolvedFirst && emailAddress) {
+      const prefix = emailAddress.split("@")[0]
+      const parts = prefix.split(/[\._-]/)
+      resolvedFirst = parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(" ")
+    }
+
     const tempUser = {
       id: "temp",
-      fullName: lastName ? `${firstName} ${lastName}` : firstName,
-      firstName,
-      lastName,
+      fullName: resolvedLast ? `${resolvedFirst} ${resolvedLast}` : resolvedFirst || "Staff Member",
+      firstName: resolvedFirst || "Staff",
+      lastName: resolvedLast,
       imageUrl: "",
       email: emailAddress,
       role: "org:member",
@@ -115,6 +124,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (clerkAuth.isSignedIn) {
       // Only set cache when user details are fully loaded from Clerk API
       if (clerkUser.user) {
+        // Auto-activate organization if the user has memberships but none is active
+        const memberships = (clerkUser.user as any).organizationMemberships || []
+        if (!clerkAuth.orgId && memberships.length > 0) {
+          const firstOrgId = memberships[0].organization.id
+          console.log("[AuthContext] Auto-activating organization:", firstOrgId)
+          clerk.setActive({ organization: firstOrgId })
+          return
+        }
+
         const activeRole = membership?.role || "org:member"
         const userObj = clerkUser.user
         const freshData = {
@@ -134,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem("clerk_cached_user")
       setCachedData(null)
     }
-  }, [isClerkLoaded, clerkAuth.isSignedIn, clerkUser.user, membership?.role, isAuthenticating])
+  }, [isClerkLoaded, clerkAuth.isSignedIn, clerkAuth.orgId, clerkUser.user, membership?.role, isAuthenticating])
 
   const login = async (email: string, password: string): Promise<LoginResult> => {
     if (!clerkAuth.isLoaded || !signInObj) {
