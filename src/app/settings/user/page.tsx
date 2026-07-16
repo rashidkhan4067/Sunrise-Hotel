@@ -23,6 +23,7 @@ import { Logo } from "@/components/logo"
 import { useAppStore } from "@/store/use-app-store"
 import { useCurrentUser } from "@/hooks/use-current-user"
 import { toast } from "sonner"
+import { useAuth } from "@/contexts/auth-context"
 
 const userFormSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -38,6 +39,7 @@ export default function UserSettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { name, email, avatar } = useCurrentUser()
   const updateUser = useAppStore((state) => state.updateUser)
+  const { updateProfile } = useAuth()
   
   const [firstName, lastName] = name.split(" ")
   
@@ -55,14 +57,20 @@ export default function UserSettingsPage() {
     },
   })
 
-  function onSubmit(data: UserFormValues) {
-    updateUser({
-      name: `${data.firstName} ${data.lastName}`,
-      email: data.email,
-    })
-    toast.success("Profile updated successfully!", {
-      description: "Your settings have been saved and dynamically synced to the sidebar.",
-    })
+  async function onSubmit(data: UserFormValues) {
+    try {
+      await updateProfile(data.firstName, data.lastName)
+      updateUser({
+        name: `${data.firstName} ${data.lastName}`,
+        email: data.email,
+      })
+      toast.success("Profile updated successfully!", {
+        description: "Your settings have been saved and dynamically synced to Clerk.",
+      })
+    } catch (err: any) {
+      console.error("Profile Update Error:", err)
+      toast.error(err.message || "Failed to update profile details on Clerk.")
+    }
   }
 
   const handleFileUpload = () => {

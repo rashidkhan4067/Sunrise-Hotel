@@ -19,6 +19,7 @@ import { Separator } from "@/components/ui/separator"
 import { useAppStore } from "@/store/use-app-store"
 import { useCurrentUser } from "@/hooks/use-current-user"
 import { toast } from "sonner"
+import { useAuth } from "@/contexts/auth-context"
 
 const accountFormSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -35,6 +36,7 @@ type AccountFormValues = z.infer<typeof accountFormSchema>
 export default function AccountSettings() {
   const { name, email } = useCurrentUser()
   const updateUser = useAppStore((state) => state.updateUser)
+  const { updateProfile } = useAuth()
 
   const [firstName, lastName] = name.split(" ")
 
@@ -51,14 +53,20 @@ export default function AccountSettings() {
     },
   })
 
-  function onSubmit(data: AccountFormValues) {
-    updateUser({
-      name: `${data.firstName} ${data.lastName}`,
-      email: data.email,
-    })
-    toast.success("Account settings updated!", {
-      description: "Your changes have been saved and dynamically synced to the sidebar.",
-    })
+  async function onSubmit(data: AccountFormValues) {
+    try {
+      await updateProfile(data.firstName, data.lastName)
+      updateUser({
+        name: `${data.firstName} ${data.lastName}`,
+        email: data.email,
+      })
+      toast.success("Account settings updated!", {
+        description: "Your changes have been saved and dynamically synced to Clerk.",
+      })
+    } catch (err: any) {
+      console.error("Account Update Error:", err)
+      toast.error(err.message || "Failed to update account details on Clerk.")
+    }
   }
 
   return (

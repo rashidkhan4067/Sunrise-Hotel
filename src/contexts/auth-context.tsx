@@ -21,6 +21,7 @@ interface AuthContextType {
   registerWithGoogle: () => Promise<void>
   logout: () => Promise<void>
   getToken: () => Promise<string | null>
+  updateProfile: (firstName: string, lastName: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -376,6 +377,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const updateProfile = async (firstName: string, lastName: string) => {
+    if (!clerkUser.user) {
+      throw new Error("User profile is not loaded or authenticated.")
+    }
+    await clerkUser.user.update({
+      firstName,
+      lastName,
+    })
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -394,6 +405,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         registerWithGoogle,
         logout,
         getToken,
+        updateProfile,
       }}
     >
       {children}

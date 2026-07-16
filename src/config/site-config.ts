@@ -119,9 +119,7 @@ export const navGroups: NavGroup[] = [
         items: [
           { title: "Sign In", url: "/auth/sign-in" },
           { title: "Sign Up", url: "/auth/sign-up" },
-          { title: "Forgot Password 1", url: "/auth/forgot-password" },
-          { title: "Forgot Password 2", url: "/auth/forgot-password-2" },
-          { title: "Forgot Password 3", url: "/auth/forgot-password-3" },
+          { title: "Forgot Password", url: "/auth/forgot-password" },
         ],
       },
       {
