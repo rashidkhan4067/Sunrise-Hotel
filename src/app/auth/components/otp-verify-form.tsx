@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { FormLabel } from "@/components/ui/form"
+import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
 
 interface OtpVerifyFormProps {
@@ -37,7 +37,7 @@ export function OtpVerifyForm({
 
       <form onSubmit={onSubmit} className="grid gap-4">
         <div className="grid gap-2">
-          <FormLabel htmlFor="verification-code">Verification Code</FormLabel>
+          <Label htmlFor="verification-code">Verification Code</Label>
           <Input
             id="verification-code"
             type="text"

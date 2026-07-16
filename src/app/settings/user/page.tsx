@@ -94,6 +94,20 @@ export default function UserSettingsPage() {
     },
   })
 
+  // Synchronize form fields with live Clerk user profile details once loaded
+  useEffect(() => {
+    if (name || email) {
+      const [first, last] = name.split(" ")
+      form.reset({
+        firstName: first || "",
+        lastName: last || "",
+        email: email || "",
+        phone: "",
+        role: role || "",
+      })
+    }
+  }, [name, email, role, form])
+
   async function onSubmit(data: UserFormValues) {
     try {
       await updateProfile(data.firstName, data.lastName)

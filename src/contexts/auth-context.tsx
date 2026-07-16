@@ -59,19 +59,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   })
 
-  const isClerkLoaded = clerkAuth.isLoaded && clerkUser.isLoaded && clerk.client
-  const hasClerkParams = typeof window !== "undefined" && window.location.search.includes("__clerk_")
+  const isClerkLoaded = clerkAuth.isLoaded && clerk.client
 
-  // Fast loading: if we have cached details, don't show the blocking loading page spinner
-  const isLoading = isClerkLoaded ? false : (cachedData ? false : true) || hasClerkParams
-  const isAuthenticated = isClerkLoaded 
-    ? (!!clerkAuth.isSignedIn || isAuthenticating) 
-    : !!cachedData
+  const isLoading = !isClerkLoaded
+  const isAuthenticated = isClerkLoaded ? (!!clerkAuth.isSignedIn || isAuthenticating) : false
   
-  // Resolve user profile (cached vs Clerk)
-  const user = isClerkLoaded
-    ? clerkUser.user
-    : (cachedData ? {
+  const [currentUser, setCurrentUser] = useState<any>(() => {
+    if (cachedData) {
+      return {
         id: cachedData.id,
         fullName: cachedData.fullName,
         firstName: cachedData.firstName,
@@ -79,12 +74,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         imageUrl: cachedData.imageUrl,
         primaryEmailAddress: { emailAddress: cachedData.email },
         emailAddresses: [{ emailAddress: cachedData.email }]
-      } : null)
+      }
+    }
+    return null
+  })
 
-  // Resolve role (cached vs Clerk)
-  const role = isClerkLoaded
-    ? (membership?.role || "org:member")
-    : (cachedData?.role || "org:member")
+  const [currentRole, setCurrentRole] = useState<string>(() => {
+    return cachedData?.role || "org:member"
+  })
 
   // Helper: Seed temporary user session cache to prevent guard redirect loops
   const seedTempUserCache = (emailAddress: string, firstName = "", lastName = "") => {
@@ -108,6 +105,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     localStorage.setItem("clerk_cached_user", JSON.stringify(tempUser))
     setCachedData(tempUser)
+    setCurrentUser({
+      id: "temp",
+      fullName: tempUser.fullName,
+      firstName: tempUser.firstName,
+      lastName: tempUser.lastName,
+      imageUrl: "",
+      primaryEmailAddress: { emailAddress: emailAddress },
+      emailAddresses: [{ emailAddress: emailAddress }]
+    })
+    setCurrentRole("org:member")
   }
 
   // Reset authenticating bridge state once Clerk confirms the session is active
@@ -135,6 +142,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const activeRole = membership?.role || "org:member"
         const userObj = clerkUser.user
+        
+        // Always bind to live Clerk user details for valid image URL signatures
+        setCurrentUser(userObj)
+        setCurrentRole(activeRole)
+
         const freshData = {
           id: userObj.id,
           fullName: userObj.fullName,
@@ -144,13 +156,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: userObj.primaryEmailAddress?.emailAddress || userObj.emailAddresses?.[0]?.emailAddress || "",
           role: activeRole,
         }
-        localStorage.setItem("clerk_cached_user", JSON.stringify(freshData))
-        setCachedData(freshData)
+
+        // Compare cache content to prevent redundant react renders and flicker
+        const freshString = JSON.stringify(freshData)
+        const cachedString = localStorage.getItem("clerk_cached_user")
+        
+        if (cachedString !== freshString) {
+          localStorage.setItem("clerk_cached_user", freshString)
+          setCachedData(freshData)
+        }
       }
     } else if (!isAuthenticating) {
-      // Only remove cache if Clerk explicitly reports signed out and we are not currently authenticating
-      localStorage.removeItem("clerk_cached_user")
-      setCachedData(null)
+      // Only remove cache if Clerk explicitly reports signed out, no local session exists, and we are not currently authenticating
+      const sessions = clerk.client?.sessions || []
+      const hasLocalSession = sessions.length > 0
+
+      if (!hasLocalSession) {
+        const cached = localStorage.getItem("clerk_cached_user")
+        if (cached) {
+          console.log("[AuthContext] No local session found. Clearing user cache.")
+          localStorage.removeItem("clerk_cached_user")
+          setCachedData(null)
+          setCurrentUser(null)
+          setCurrentRole("org:member")
+        }
+      }
     }
   }, [isClerkLoaded, clerkAuth.isSignedIn, clerkAuth.orgId, clerkUser.user, membership?.role, isAuthenticating])
 
@@ -409,8 +439,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         isAuthenticated,
         isLoading,
-        user,
-        role,
+        user: currentUser,
+        role: currentRole,
         signIn: signInObj,
         signUp: signUpObj,
         login,

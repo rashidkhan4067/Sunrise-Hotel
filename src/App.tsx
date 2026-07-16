@@ -31,6 +31,7 @@ function AppContent({ themeCustomizerOpen, setThemeCustomizerOpen }: {
       signUpUrl="/auth/sign-up"
       routerPush={(to: string) => navigate(to)}
       routerReplace={(to: string) => navigate(to, { replace: true })}
+      telemetry={false}
     >
       <AuthProvider>
         <ThemeProvider defaultTheme="system">

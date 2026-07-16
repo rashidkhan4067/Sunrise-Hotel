@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
+import { useEffect } from "react"
 import { z } from "zod"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -52,6 +53,22 @@ export default function AccountSettings() {
       confirmPassword: "",
     },
   })
+
+  // Synchronize form fields with live Clerk user profile details once loaded
+  useEffect(() => {
+    if (name || email) {
+      const [first, last] = name.split(" ")
+      form.reset({
+        firstName: first || "",
+        lastName: last || "",
+        email: email || "",
+        username: name.toLowerCase().replace(/ /g, ""),
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      })
+    }
+  }, [name, email, form])
 
   async function onSubmit(data: AccountFormValues) {
     try {
