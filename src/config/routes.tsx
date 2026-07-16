@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import { Navigate } from 'react-router-dom'
 import { AdminRoute } from '@/components/admin-route'
+import { ProtectedRoute } from '@/components/router/protected-route'
 
 // Lazy load components for better performance
 const Landing = lazy(() => import('@/app/landing/page'))
@@ -141,27 +142,27 @@ export const routes: RouteConfig[] = [
   // Settings Routes
   {
     path: "/settings/user",
-    element: <UserSettings />
+    element: <ProtectedRoute><UserSettings /></ProtectedRoute>
   },
   {
     path: "/settings/account",
-    element: <AccountSettings />
+    element: <ProtectedRoute><AccountSettings /></ProtectedRoute>
   },
   {
     path: "/settings/billing",
-    element: <BillingSettings />
+    element: <ProtectedRoute><BillingSettings /></ProtectedRoute>
   },
   {
     path: "/settings/appearance",
-    element: <AppearanceSettings />
+    element: <ProtectedRoute><AppearanceSettings /></ProtectedRoute>
   },
   {
     path: "/settings/notifications",
-    element: <NotificationSettings />
+    element: <ProtectedRoute><NotificationSettings /></ProtectedRoute>
   },
   {
     path: "/settings/connections",
-    element: <ConnectionSettings />
+    element: <ProtectedRoute><ConnectionSettings /></ProtectedRoute>
   },
 
   // Catch-all route for 404
