@@ -16,14 +16,16 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Upload } from "lucide-react"
-import { useRef, useState } from "react"
+import { Upload, Loader2 } from "lucide-react"
+import { useRef, useState, useEffect } from "react"
 import { Separator } from "@/components/ui/separator"
 import { Logo } from "@/components/logo"
 import { useAppStore } from "@/store/use-app-store"
 import { useCurrentUser } from "@/hooks/use-current-user"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
+import { useOrganization } from "@clerk/react"
+import { Label } from "@/components/ui/label"
 
 const userFormSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -45,6 +47,41 @@ export default function UserSettingsPage() {
   
   const [profileImage, setProfileImage] = useState<string | null>(avatar || null)
   const [useDefaultIcon, setUseDefaultIcon] = useState(!avatar)
+
+  const { organization } = useOrganization()
+  const { role } = useAuth()
+  const isAdmin = role === "org:admin"
+
+  const [orgName, setOrgName] = useState("")
+  const [orgSlug, setOrgSlug] = useState("")
+  const [updatingOrg, setUpdatingOrg] = useState(false)
+
+  useEffect(() => {
+    if (organization) {
+      setOrgName(organization.name)
+      setOrgSlug(organization.slug || "")
+    }
+  }, [organization])
+
+  const handleUpdateOrg = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!organization) return
+    setUpdatingOrg(true)
+    try {
+      await organization.update({
+        name: orgName,
+        slug: orgSlug,
+      })
+      toast.success("Organization updated successfully!", {
+        description: "Your hotel settings have been saved on Clerk.",
+      })
+    } catch (err: any) {
+      console.error("Org Update Error:", err)
+      toast.error(err.message || "Failed to update organization details on Clerk.")
+    } finally {
+      setUpdatingOrg(false)
+    }
+  }
   
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
@@ -246,6 +283,85 @@ export default function UserSettingsPage() {
         </Card>
           </form>
         </Form>
+
+        {organization && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Hotel Organization Settings</CardTitle>
+              <CardDescription>
+                Manage the settings for your hotel workspace.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleUpdateOrg} className="space-y-6">
+                <div className="flex items-center gap-6">
+                  <Avatar className="h-16 w-16 rounded-lg">
+                    <AvatarImage src={organization.imageUrl || undefined} />
+                    <AvatarFallback className="text-lg bg-primary text-primary-foreground font-semibold">
+                      {organization.name.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col gap-1">
+                    <h4 className="font-medium text-sm">Hotel Logo</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Managed through Clerk Dashboard
+                    </p>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid gap-2">
+                    <Label htmlFor="org-name">Organization Name</Label>
+                    <Input
+                      id="org-name"
+                      value={orgName}
+                      onChange={(e) => setOrgName(e.target.value)}
+                      placeholder="e.g. Sunrise Hotel London"
+                      required
+                      disabled={!isAdmin || updatingOrg}
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="org-slug">Workspace Slug</Label>
+                    <Input
+                      id="org-slug"
+                      value={orgSlug}
+                      onChange={(e) => setOrgSlug(e.target.value)}
+                      placeholder="e.g. sunrise-london"
+                      required
+                      disabled={!isAdmin || updatingOrg}
+                    />
+                  </div>
+
+                  <div className="grid gap-2 md:col-span-2">
+                    <Label htmlFor="org-id">Organization ID</Label>
+                    <Input
+                      id="org-id"
+                      value={organization.id}
+                      readOnly
+                      className="bg-muted cursor-not-allowed font-mono text-xs"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Unique workspace identifier for API connections and database references.
+                    </p>
+                  </div>
+                </div>
+
+                {isAdmin && (
+                  <div className="flex justify-start">
+                    <Button type="submit" disabled={updatingOrg}>
+                      {updatingOrg && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Update Workspace
+                    </Button>
+                  </div>
+                )}
+              </form>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </BaseLayout>
   )
