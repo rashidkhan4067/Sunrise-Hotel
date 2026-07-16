@@ -94,7 +94,7 @@ export default function UserSettingsPage() {
     },
   })
 
-  // Synchronize form fields with live Clerk user profile details once loaded
+  // Synchronize form fields and profile image with live Clerk user profile details once loaded
   useEffect(() => {
     if (name || email) {
       const [first, last] = name.split(" ")
@@ -105,8 +105,12 @@ export default function UserSettingsPage() {
         phone: "",
         role: role || "",
       })
+      if (avatar) {
+        setProfileImage(avatar)
+        setUseDefaultIcon(false)
+      }
     }
-  }, [name, email, role, form])
+  }, [name, email, avatar, role, form])
 
   async function onSubmit(data: UserFormValues) {
     try {
