@@ -16,13 +16,12 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 import { Upload } from "lucide-react"
 import { useRef, useState } from "react"
 import { Separator } from "@/components/ui/separator"
 import { Logo } from "@/components/logo"
 import { useAppStore } from "@/store/use-app-store"
+import { useCurrentUser } from "@/hooks/use-current-user"
 import { toast } from "sonner"
 
 const userFormSchema = z.object({
@@ -30,41 +29,29 @@ const userFormSchema = z.object({
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Invalid email address"),
   phone: z.string().optional(),
-  website: z.string().optional(),
-  location: z.string().optional(),
   role: z.string().optional(),
-  bio: z.string().optional(),
-  company: z.string().optional(),
-  timezone: z.string().optional(),
-  language: z.string().optional(),
 })
 
 type UserFormValues = z.infer<typeof userFormSchema>
 
 export default function UserSettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [profileImage, setProfileImage] = useState<string | null>(null)
-  const [useDefaultIcon, setUseDefaultIcon] = useState(true)
-  
-  const user = useAppStore((state) => state.user)
+  const { name, email, avatar } = useCurrentUser()
   const updateUser = useAppStore((state) => state.updateUser)
   
-  const [firstName, lastName] = user.name.split(" ")
+  const [firstName, lastName] = name.split(" ")
+  
+  const [profileImage, setProfileImage] = useState<string | null>(avatar || null)
+  const [useDefaultIcon, setUseDefaultIcon] = useState(!avatar)
   
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
       firstName: firstName || "",
       lastName: lastName || "",
-      email: user.email || "",
+      email: email || "",
       phone: "",
-      website: "",
-      location: "",
       role: "",
-      bio: "",
-      company: "",
-      timezone: "",
-      language: "",
     },
   })
 
@@ -206,20 +193,6 @@ export default function UserSettingsPage() {
                 )}
               />
 
-              {/* Company */}
-              <FormField
-                control={form.control}
-                name="company"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Company</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter your company" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               {/* Phone Number */}
               <FormField
@@ -231,63 +204,6 @@ export default function UserSettingsPage() {
                     <FormControl>
                       <Input type="tel" placeholder="Enter your phone number" {...field} />
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Location */}
-              <FormField
-                control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter your location" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Website */}
-              <FormField
-                control={form.control}
-                name="website"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Website</FormLabel>
-                    <FormControl>
-                      <Input type="url" placeholder="Enter your website" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Language */}
-              <FormField
-                control={form.control}
-                name="language"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Language</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select Language" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="english">English</SelectItem>
-                        <SelectItem value="spanish">Spanish</SelectItem>
-                        <SelectItem value="french">French</SelectItem>
-                        <SelectItem value="german">German</SelectItem>
-                        <SelectItem value="italian">Italian</SelectItem>
-                        <SelectItem value="portuguese">Portuguese</SelectItem>
-                      </SelectContent>
-                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -307,55 +223,7 @@ export default function UserSettingsPage() {
                   </FormItem>
                 )}
               />
-
-              {/* Timezone */}
-              <FormField
-                control={form.control}
-                name="timezone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Timezone</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select Timezone" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="pst">PST (Pacific Standard Time)</SelectItem>
-                        <SelectItem value="est">EST (Eastern Standard Time)</SelectItem>
-                        <SelectItem value="cst">CST (Central Standard Time)</SelectItem>
-                        <SelectItem value="mst">MST (Mountain Standard Time)</SelectItem>
-                        <SelectItem value="utc">UTC (Coordinated Universal Time)</SelectItem>
-                        <SelectItem value="cet">CET (Central European Time)</SelectItem>
-                        <SelectItem value="jst">JST (Japan Standard Time)</SelectItem>
-                        <SelectItem value="aest">AEST (Australian Eastern Standard Time)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
-
-            {/* Bio - Full Width */}
-            <FormField
-              control={form.control}
-              name="bio"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Bio</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Tell us a little about yourself..." 
-                      className="min-h-[100px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             {/* Action Buttons */}
             <div className="flex justify-start gap-3">

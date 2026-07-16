@@ -13,8 +13,6 @@ interface User {
   email: string
   avatar: string
   role: string
-  plan: string
-  billing: string
   status: string
   joinedDate: string
   lastLogin: string
@@ -24,8 +22,6 @@ interface UserFormValues {
   name: string
   email: string
   role: string
-  plan: string
-  billing: string
   status: string
 }
 
@@ -47,8 +43,6 @@ export default function UsersPage() {
       email: userData.email,
       avatar: generateAvatar(userData.name),
       role: userData.role,
-      plan: userData.plan,
-      billing: userData.billing,
       status: userData.status,
       joinedDate: new Date().toISOString().split('T')[0],
       lastLogin: new Date().toISOString().split('T')[0],
@@ -68,8 +62,8 @@ export default function UsersPage() {
 
   return (
     <BaseLayout 
-      title="Users" 
-      description="Manage your users and their permissions"
+      title="Staff Management" 
+      description="Manage your hotel staff and their permissions"
     >
       <div className="flex flex-col gap-4">
         <div className="@container/main px-4 lg:px-6">

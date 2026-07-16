@@ -12,8 +12,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { useAppStore } from "@/store/use-app-store"
 import { useAuth } from "@/contexts/auth-context"
+import { useCurrentUser } from "@/hooks/use-current-user"
 import { toast } from "sonner"
 import {
   User,
@@ -27,19 +27,17 @@ import {
 export function UserNav() {
   const navigate = useNavigate()
   const { logout } = useAuth()
-  const user = useAppStore((state) => state.user)
+  const { name, email, avatar } = useCurrentUser()
 
-  const initials = user.name
-    ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : "U"
+  const initials = name
+    .split(" ")
+    .map((n: string) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "U"
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     toast.success("Signed out successfully")
     navigate("/auth/sign-in")
   }
@@ -52,13 +50,13 @@ export function UserNav() {
           className="flex items-center gap-2 h-9 px-2 rounded-full cursor-pointer hover:bg-accent"
         >
           <Avatar className="h-7 w-7 ring-2 ring-border">
-            {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
+            {avatar && <AvatarImage src={avatar} alt={name} />}
             <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
               {initials}
             </AvatarFallback>
           </Avatar>
           <span className="hidden md:block text-sm font-medium max-w-[120px] truncate">
-            {user.name}
+            {name}
           </span>
           <ChevronDown className="hidden md:block size-3.5 text-muted-foreground" />
         </Button>
@@ -67,14 +65,14 @@ export function UserNav() {
         <DropdownMenuLabel className="p-0 font-normal">
           <div className="flex items-center gap-3 px-2 py-2">
             <Avatar className="h-9 w-9 ring-2 ring-border">
-              {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
+              {avatar && <AvatarImage src={avatar} alt={name} />}
               <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
                 {initials}
               </AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-semibold">{user.name}</span>
-              <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+              <span className="truncate font-semibold">{name}</span>
+              <span className="truncate text-xs text-muted-foreground">{email}</span>
             </div>
           </div>
         </DropdownMenuLabel>

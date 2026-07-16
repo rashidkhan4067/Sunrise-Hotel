@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { useAppStore } from "@/store/use-app-store"
+import { useCurrentUser } from "@/hooks/use-current-user"
 import { toast } from "sonner"
 
 const accountFormSchema = z.object({
@@ -32,18 +33,18 @@ const accountFormSchema = z.object({
 type AccountFormValues = z.infer<typeof accountFormSchema>
 
 export default function AccountSettings() {
-  const user = useAppStore((state) => state.user)
+  const { name, email } = useCurrentUser()
   const updateUser = useAppStore((state) => state.updateUser)
 
-  const [firstName, lastName] = user.name.split(" ")
+  const [firstName, lastName] = name.split(" ")
 
   const form = useForm<AccountFormValues>({
     resolver: zodResolver(accountFormSchema),
     defaultValues: {
       firstName: firstName || "",
       lastName: lastName || "",
-      email: user.email || "",
-      username: user.name.toLowerCase().replace(/ /g, ""),
+      email: email || "",
+      username: name.toLowerCase().replace(/ /g, ""),
       currentPassword: "",
       newPassword: "",
       confirmPassword: "",

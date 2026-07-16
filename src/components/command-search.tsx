@@ -151,10 +151,8 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
     { title: "Calendar", url: "/calendar", group: "Apps", icon: Calendar },
 
     // Auth Pages
-    { title: "Sign In 1", url: "/auth/sign-in", group: "Auth Pages", icon: Shield },
-    { title: "Sign In 2", url: "/auth/sign-in-2", group: "Auth Pages", icon: Shield },
-    { title: "Sign Up 1", url: "/auth/sign-up", group: "Auth Pages", icon: Shield },
-    { title: "Sign Up 2", url: "/auth/sign-up-2", group: "Auth Pages", icon: Shield },
+    { title: "Sign In", url: "/auth/sign-in", group: "Auth Pages", icon: Shield },
+    { title: "Sign Up", url: "/auth/sign-up", group: "Auth Pages", icon: Shield },
     { title: "Forgot Password 1", url: "/auth/forgot-password", group: "Auth Pages", icon: Shield },
     { title: "Forgot Password 2", url: "/auth/forgot-password-2", group: "Auth Pages", icon: Shield },
 
@@ -211,8 +209,8 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
   if (isAuthenticated) {
     searchItems.push({
       title: "Sign Out",
-      action: () => {
-        logout()
+      action: async () => {
+        await logout()
         toast.success("Logged out successfully!")
         navigate("/auth/sign-in")
       },

@@ -9,9 +9,47 @@ import { AuthProvider } from '@/contexts/auth-context'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeCustomizer, ThemeCustomizerTrigger } from '@/components/theme-customizer'
+import { ClerkProvider } from '@clerk/react'
 
 // Get basename from environment (for deployment) or use empty string for development
 const basename = import.meta.env.VITE_BASENAME || ''
+
+const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || ''
+
+import { useNavigate } from 'react-router-dom'
+
+function AppContent({ themeCustomizerOpen, setThemeCustomizerOpen }: { 
+  themeCustomizerOpen: boolean; 
+  setThemeCustomizerOpen: (open: boolean) => void 
+}) {
+  const navigate = useNavigate()
+
+  return (
+    <ClerkProvider 
+      publishableKey={CLERK_PUBLISHABLE_KEY}
+      signInUrl="/auth/sign-in"
+      signUpUrl="/auth/sign-up"
+      routerPush={(to: string) => navigate(to)}
+      routerReplace={(to: string) => navigate(to, { replace: true })}
+    >
+      <AuthProvider>
+        <ThemeProvider defaultTheme="system">
+          <SidebarConfigProvider>
+            <AppRouter />
+            <Toaster />
+
+            {/* Global theme customizer — renders on ALL pages (error, auth, admin) */}
+            <ThemeCustomizerTrigger onClick={() => setThemeCustomizerOpen(true)} />
+            <ThemeCustomizer
+              open={themeCustomizerOpen}
+              onOpenChange={setThemeCustomizerOpen}
+            />
+          </SidebarConfigProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </ClerkProvider>
+  )
+}
 
 function App() {
   const [themeCustomizerOpen, setThemeCustomizerOpen] = useState(false)
@@ -24,23 +62,12 @@ function App() {
   return (
     <div className="font-sans antialiased" style={{ fontFamily: 'var(--font-inter)' }}>
       <ErrorBoundary>
-        <AuthProvider>
-          <ThemeProvider defaultTheme="system">
-            <SidebarConfigProvider>
-              <Router basename={basename}>
-                <AppRouter />
-              </Router>
-              <Toaster />
-
-              {/* Global theme customizer — renders on ALL pages (error, auth, admin) */}
-              <ThemeCustomizerTrigger onClick={() => setThemeCustomizerOpen(true)} />
-              <ThemeCustomizer
-                open={themeCustomizerOpen}
-                onOpenChange={setThemeCustomizerOpen}
-              />
-            </SidebarConfigProvider>
-          </ThemeProvider>
-        </AuthProvider>
+        <Router basename={basename}>
+          <AppContent 
+            themeCustomizerOpen={themeCustomizerOpen} 
+            setThemeCustomizerOpen={setThemeCustomizerOpen} 
+          />
+        </Router>
       </ErrorBoundary>
     </div>
   )

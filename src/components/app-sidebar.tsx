@@ -15,11 +15,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { useAppStore } from "@/store/use-app-store"
+import { useCurrentUser } from "@/hooks/use-current-user"
 import { BRAND_CONFIG, navGroups } from "@/config/site-config"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const user = useAppStore((state) => state.user)
+  const user = useCurrentUser()
 
   return (
     <Sidebar {...props}>

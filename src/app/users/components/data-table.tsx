@@ -62,8 +62,6 @@ interface User {
   email: string
   avatar: string
   role: string
-  plan: string
-  billing: string
   status: string
   joinedDate: string
   lastLogin: string
@@ -73,8 +71,6 @@ interface UserFormValues {
   name: string
   email: string
   role: string
-  plan: string
-  billing: string
   status: string
 }
 
@@ -178,9 +174,7 @@ export function DataTable({ users, onDeleteUser, onEditUser, onAddUser }: DataTa
                 <Badge variant="secondary" className={cn("text-[9px] px-1 py-0 h-4 font-normal shrink-0", getStatusColor(user.status))}>
                   {user.status}
                 </Badge>
-                <span className="inline-flex items-center gap-1 px-1 py-0 h-4 text-[9px] border rounded bg-background font-mono shrink-0">
-                  {user.plan} • {user.billing}
-                </span>
+
               </div>
             </div>
           </div>
@@ -200,23 +194,7 @@ export function DataTable({ users, onDeleteUser, onEditUser, onAddUser }: DataTa
       },
       filterFn: exactFilter,
     },
-    {
-      accessorKey: "plan",
-      header: "Plan",
-      cell: ({ row }) => {
-        const plan = row.getValue("plan") as string
-        return <span className="font-medium">{plan}</span>
-      },
-      filterFn: exactFilter,
-    },
-    {
-      accessorKey: "billing",
-      header: "Billing",
-      cell: ({ row }) => {
-        const billing = row.getValue("billing") as string
-        return <span className="text-sm">{billing}</span>
-      },
-    },
+
     {
       accessorKey: "status",
       header: "Status",
@@ -306,7 +284,6 @@ export function DataTable({ users, onDeleteUser, onEditUser, onAddUser }: DataTa
   })
 
   const roleFilter = table.getColumn("role")?.getFilterValue() as string
-  const planFilter = table.getColumn("plan")?.getFilterValue() as string
   const statusFilter = table.getColumn("status")?.getFilterValue() as string
 
   return (
@@ -349,34 +326,11 @@ export function DataTable({ users, onDeleteUser, onEditUser, onAddUser }: DataTa
             <SelectContent>
               <SelectItem value="all">All Roles</SelectItem>
               <SelectItem value="Admin">Admin</SelectItem>
-              <SelectItem value="Author">Author</SelectItem>
-              <SelectItem value="Editor">Editor</SelectItem>
-              <SelectItem value="Maintainer">Maintainer</SelectItem>
-              <SelectItem value="Subscriber">Subscriber</SelectItem>
+              <SelectItem value="Receptionist">Receptionist</SelectItem>
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="plan-filter" className="text-sm font-medium">
-            Plan
-          </Label>
-          <Select
-            value={planFilter || ""}
-            onValueChange={(value) =>
-              table.getColumn("plan")?.setFilterValue(value === "all" ? "" : value)
-            }
-          >
-            <SelectTrigger className="cursor-pointer w-full" id="plan-filter">
-              <SelectValue placeholder="Select Plan" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Plans</SelectItem>
-              <SelectItem value="Basic">Basic</SelectItem>
-              <SelectItem value="Professional">Professional</SelectItem>
-              <SelectItem value="Enterprise">Enterprise</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+
         <div className="space-y-2">
           <Label htmlFor="status-filter" className="text-sm font-medium">
             Status
@@ -440,7 +394,7 @@ export function DataTable({ users, onDeleteUser, onEditUser, onAddUser }: DataTa
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   const columnId = header.column.id
-                  const isResponsiveHidden = ["role", "plan", "billing", "status"].includes(columnId)
+                  const isResponsiveHidden = ["role", "status"].includes(columnId)
                   return (
                     <TableHead 
                       key={header.id}
@@ -467,7 +421,7 @@ export function DataTable({ users, onDeleteUser, onEditUser, onAddUser }: DataTa
                 >
                   {row.getVisibleCells().map((cell) => {
                     const columnId = cell.column.id
-                    const isResponsiveHidden = ["role", "plan", "billing", "status"].includes(columnId)
+                    const isResponsiveHidden = ["role", "status"].includes(columnId)
                     return (
                       <TableCell 
                         key={cell.id}
