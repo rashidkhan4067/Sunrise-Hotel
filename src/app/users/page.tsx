@@ -4,6 +4,7 @@ import { useState } from "react"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { StatCards } from "./components/stat-cards"
 import { DataTable } from "./components/data-table"
+import { getInitials } from "@/lib/utils"
 
 import initialUsersData from "./data.json"
 
@@ -29,11 +30,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>(initialUsersData)
 
   const generateAvatar = (name: string) => {
-    const names = name.split(" ")
-    if (names.length >= 2) {
-      return `${names[0][0]}${names[1][0]}`.toUpperCase()
-    }
-    return name.substring(0, 2).toUpperCase()
+    return getInitials(name)
   }
 
   const handleAddUser = (userData: UserFormValues) => {

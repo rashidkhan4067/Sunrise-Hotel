@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/auth-context"
 import { useCurrentUser } from "@/hooks/use-current-user"
 import { toast } from "sonner"
+import { getInitials } from "@/lib/utils"
 import {
   User,
   Settings,
@@ -29,12 +30,7 @@ export function UserNav() {
   const { logout } = useAuth()
   const { name, email, avatar } = useCurrentUser()
 
-  const initials = name
-    .split(" ")
-    .map((n: string) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) || "U"
+  const initials = getInitials(name)
 
   const handleLogout = async () => {
     await logout()

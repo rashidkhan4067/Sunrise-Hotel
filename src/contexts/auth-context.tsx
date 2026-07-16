@@ -144,10 +144,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let result;
     try {
       result = await signInObj.create({
-        placeholder: "no-op",
         identifier: email,
         password: password,
-      } as any)
+      })
     } catch (err: any) {
       const clerkError = err.errors?.[0]
       const isAlreadySignedIn = clerkError?.code === "session_exists" || 

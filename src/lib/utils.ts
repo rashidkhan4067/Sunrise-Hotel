@@ -25,3 +25,18 @@ export function getAppUrl(path: string): string {
   const cleanPath = path.startsWith('/') ? path : `/${path}`
   return basename + cleanPath
 }
+
+/**
+ * Extract initials from a full name (e.g. "John Doe" -> "JD", "Single" -> "SI")
+ */
+export function getInitials(name: string): string {
+  if (!name) return "U"
+  const cleanName = name.trim()
+  if (!cleanName) return "U"
+  
+  const names = cleanName.split(/\s+/)
+  if (names.length >= 2) {
+    return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase().slice(0, 2)
+  }
+  return cleanName.slice(0, 2).toUpperCase()
+}

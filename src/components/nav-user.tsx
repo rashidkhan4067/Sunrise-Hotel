@@ -5,6 +5,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { getInitials } from "@/lib/utils"
 
 export function NavUser({
   user,
@@ -15,14 +16,7 @@ export function NavUser({
     avatar: string
   }
 }) {
-  const initials = user.name
-    ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : "U"
+  const initials = getInitials(user.name)
 
   return (
     <SidebarMenu>
