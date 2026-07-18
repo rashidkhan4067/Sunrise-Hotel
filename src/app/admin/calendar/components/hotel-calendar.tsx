@@ -491,7 +491,7 @@ export function HotelCalendar() {
 
             {/* WEEK VIEW */}
             {viewMode === "week" && (
-              <div className="min-w-[800px] grid grid-cols-7 divide-x divide-border bg-background">
+              <div className="flex flex-col md:grid md:grid-cols-7 divide-y md:divide-y-0 md:divide-x divide-border bg-background">
                 {Array.from({ length: 7 }).map((_, i) => {
                   const start = startOfWeek(currentDate)
                   const day = addDays(start, i)
@@ -499,20 +499,21 @@ export function HotelCalendar() {
                   const isDayToday = isToday(day)
 
                   return (
-                    <div key={i} className="flex flex-col min-h-[480px]">
+                    <div key={i} className="flex flex-col min-h-0 md:min-h-[480px]">
                       {/* Day Header */}
                       <div
                         className={cn(
-                          "p-3 text-center border-b bg-muted/15 flex flex-col gap-0.5",
+                          "p-3 border-b bg-muted/15 flex flex-row md:flex-col items-center justify-between md:justify-center gap-2",
                           isDayToday ? "bg-primary/5 border-b-primary/30" : ""
                         )}
                       >
                         <span className="text-[10px] uppercase font-bold text-muted-foreground">
-                          {format(day, "eee")}
+                          <span className="md:hidden">{format(day, "EEEE")}</span>
+                          <span className="hidden md:inline">{format(day, "eee")}</span>
                         </span>
                         <span
                           className={cn(
-                            "text-sm font-semibold w-6 h-6 flex items-center justify-center rounded-full mx-auto",
+                            "text-sm font-semibold w-6 h-6 flex items-center justify-center rounded-full",
                             isDayToday ? "bg-primary text-primary-foreground text-xs" : ""
                           )}
                         >
@@ -521,12 +522,12 @@ export function HotelCalendar() {
                       </div>
 
                       {/* Day Events Column */}
-                      <div className="flex-1 p-2 space-y-2 max-h-[400px] overflow-y-auto">
+                      <div className="flex-1 p-2.5 space-y-2 max-h-[300px] md:max-h-[400px] overflow-y-auto">
                         {dayEvs.length > 0 ? (
                           dayEvs.map((ev) => <EventCard key={ev.id} ev={ev} />)
                         ) : (
-                          <div className="h-full flex items-center justify-center">
-                            <span className="text-[10px] text-muted-foreground/40 italic">Empty</span>
+                          <div className="py-4 md:h-full flex items-center justify-center">
+                            <span className="text-[10px] text-muted-foreground/40 italic">No events</span>
                           </div>
                         )}
                       </div>
@@ -538,7 +539,7 @@ export function HotelCalendar() {
 
             {/* MONTH VIEW */}
             {viewMode === "month" && (
-              <div className="min-w-[800px] flex flex-col">
+              <div className="w-full flex flex-col">
                 <div className="grid grid-cols-7 border-b divide-x divide-border bg-muted/20">
                   {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
                     <div key={day} className="py-2 text-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -561,14 +562,17 @@ export function HotelCalendar() {
                       const dayEvs = getDayEvents(day)
                       const inMonth = isSameMonth(day, currentDate)
                       const isDayToday = isToday(day)
+                      const isSelected = isSameDay(day, currentDate)
 
                       return (
                         <div
                           key={day.toISOString()}
+                          onClick={() => setCurrentDate(day)}
                           className={cn(
-                            "min-h-[90px] p-1.5 flex flex-col justify-between transition-colors",
-                            inMonth ? "hover:bg-muted/15" : "bg-muted/10 opacity-60",
-                            isDayToday ? "bg-primary/5" : ""
+                            "min-h-[50px] md:min-h-[90px] p-1.5 flex flex-col justify-between transition-colors cursor-pointer select-none",
+                            inMonth ? "hover:bg-muted/15" : "bg-muted/10 opacity-40",
+                            isDayToday ? "bg-primary/5" : "",
+                            isSelected ? "ring-2 ring-primary ring-inset bg-primary/5" : ""
                           )}
                         >
                           <div className="flex items-center justify-between mb-1">
@@ -582,7 +586,8 @@ export function HotelCalendar() {
                             </span>
                           </div>
 
-                          <div className="space-y-1 mt-1 max-h-[60px] overflow-y-auto">
+                          {/* Desktop: show full event list buttons */}
+                          <div className="hidden md:block space-y-1 mt-1 max-h-[60px] overflow-y-auto">
                             {dayEvs.map((ev) => {
                               const config = STATUS_CONFIG[ev.booking.status]
                               return (
@@ -593,19 +598,53 @@ export function HotelCalendar() {
                                     openDetail(ev.booking)
                                   }}
                                   className={cn(
-                                    "w-full text-left text-[9px] font-semibold text-white px-1.5 py-0.5 rounded-sm flex items-center gap-1 truncate",
+                                    "w-full text-left text-[9px] font-semibold text-white px-1.5 py-0.5 rounded-sm flex items-center gap-1 truncate cursor-pointer",
                                     config ? config.dot : "bg-primary"
                                   )}
                                 >
                                   {ev.booking.room_details?.room_number || "—"} · {ev.booking.guest_details?.full_name?.split(" ")[0]}
                                 </button>
-                              )}
-                            )}
+                              )
+                            })}
                           </div>
+
+                          {/* Mobile: show small indicator dots */}
+                          {dayEvs.length > 0 && (
+                            <div className="flex justify-center gap-0.5 mt-0.5 md:hidden">
+                              {dayEvs.slice(0, 3).map((ev) => (
+                                <span
+                                  key={ev.id}
+                                  className={cn(
+                                    "w-1.5 h-1.5 rounded-full shrink-0",
+                                    STATUS_CONFIG[ev.booking.status]?.dot || "bg-primary"
+                                  )}
+                                />
+                              ))}
+                              {dayEvs.length > 3 && (
+                                <span className="text-[7px] leading-none text-muted-foreground font-bold">+</span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )
                     })
                   })()}
+                </div>
+
+                {/* Mobile Selected Day Agenda list below the calendar */}
+                <div className="block md:hidden p-4 bg-muted/5 border-t border-border">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                    Agenda for {format(currentDate, "MMMM d, yyyy")}
+                  </h3>
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {getDayEvents(currentDate).length > 0 ? (
+                      getDayEvents(currentDate).map((ev) => <EventCard key={ev.id} ev={ev} />)
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic py-6 text-center">
+                        No check-ins or check-outs scheduled for this day.
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
