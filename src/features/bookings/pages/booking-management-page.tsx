@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { Button } from "@/components/ui/button"
 import { Plus, RefreshCw, ClipboardList, Clock, LogIn, LogOut, TrendingUp, MoreHorizontal, BadgeInfo, Edit, XCircle, Trash2 } from "lucide-react"
-import { ErrorBanner, BookingStatusBadge, DataTable, type ColumnDef } from "@/components/shared"
+import { ErrorBanner, BookingStatusBadge, DataTable, FilterBar, type ColumnDef } from "@/components/shared"
 import { StatCard } from "@/components/stat-card"
 import { toast } from "sonner"
 import {
@@ -17,7 +17,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 import type { Booking } from "../types"
-import { FilterBar } from "../components/filter-bar"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { formatDate, formatShortId } from "@/utils/format"
 import { BookingDetailView } from "../components/booking-detail-view"
 import {
@@ -221,6 +222,7 @@ export function BookingManagementPage() {
     {
       header: "Booking ID",
       className: "w-[120px]",
+      hideOnMobile: true,
       cell: (booking) => (
         <span className="font-mono text-xs text-muted-foreground">
           #{formatShortId(booking.booking_id)}
@@ -237,11 +239,21 @@ export function BookingManagementPage() {
           <span className="text-xs text-muted-foreground">
             {booking.guest_details?.phone_number || ""}
           </span>
+          {/* Mobile-only compact info row */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 md:hidden">
+            <span className="text-xs text-muted-foreground font-medium">
+              Room {booking.room_details?.room_number || "—"}
+            </span>
+            <span className="text-[10px] text-muted-foreground/70">
+              {formatDate(booking.check_in)} → {formatDate(booking.check_out)}
+            </span>
+          </div>
         </div>
       ),
     },
     {
       header: "Room",
+      hideOnMobile: true,
       cell: (booking) => (
         <div className="flex flex-col">
           <span className="font-medium text-foreground text-sm">
@@ -255,14 +267,17 @@ export function BookingManagementPage() {
     },
     {
       header: "Check-in",
+      hideOnMobile: true,
       cell: (booking) => <span className="text-sm text-muted-foreground">{formatDate(booking.check_in)}</span>,
     },
     {
       header: "Check-out",
+      hideOnMobile: true,
       cell: (booking) => <span className="text-sm text-muted-foreground">{formatDate(booking.check_out)}</span>,
     },
     {
       header: "Guests",
+      hideOnMobile: true,
       cell: (booking) => (
         <span className="text-sm text-muted-foreground">
           {booking.adults}A {booking.children > 0 ? `${booking.children}C` : ""}
@@ -275,6 +290,7 @@ export function BookingManagementPage() {
     },
     {
       header: "Created",
+      hideOnMobile: true,
       cell: (booking) => <span className="text-xs text-muted-foreground">{formatDate(booking.created_at)}</span>,
     },
     {
@@ -483,20 +499,68 @@ export function BookingManagementPage() {
         </div>
       )}
 
-      {/* Filter bar */}
       <FilterBar
-        search={search}
-        onSearchChange={setSearch}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
-        typeFilter={typeFilter}
-        onTypeFilterChange={setTypeFilter}
-        checkInFilter={checkInFilter}
-        onCheckInFilterChange={setCheckInFilter}
-        checkOutFilter={checkOutFilter}
-        onCheckOutFilterChange={setCheckOutFilter}
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: "Guest, Room, Booking ID...",
+          label: "Search",
+        }}
+        filters={[
+          {
+            id: "status",
+            label: "Booking Status",
+            value: statusFilter,
+            onValueChange: setStatusFilter,
+            options: [
+              { label: "All Statuses", value: "all" },
+              { label: "Pending", value: "PENDING" },
+              { label: "Confirmed", value: "CONFIRMED" },
+              { label: "Checked In", value: "CHECKED_IN" },
+              { label: "Checked Out", value: "CHECKED_OUT" },
+              { label: "Cancelled", value: "CANCELLED" },
+            ],
+          },
+          {
+            id: "type",
+            label: "Room Type",
+            value: typeFilter,
+            onValueChange: setTypeFilter,
+            options: [
+              { label: "All Types", value: "all" },
+              { label: "Single", value: "SINGLE" },
+              { label: "Double", value: "DOUBLE" },
+              { label: "Twin", value: "TWIN" },
+              { label: "Deluxe", value: "DELUXE" },
+              { label: "Suite", value: "SUITE" },
+              { label: "Family", value: "FAMILY" },
+            ],
+          },
+        ]}
         onReset={resetFilters}
-      />
+        isFiltered={search !== "" || statusFilter !== "all" || typeFilter !== "all" || checkInFilter !== "" || checkOutFilter !== ""}
+      >
+        <div className="w-full sm:w-auto sm:min-w-[140px] space-y-1.5">
+          <Label htmlFor="check-in-filter" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Check-In</Label>
+          <Input
+            id="check-in-filter"
+            type="date"
+            value={checkInFilter}
+            onChange={(e) => setCheckInFilter(e.target.value)}
+            className="cursor-pointer"
+          />
+        </div>
+        <div className="w-full sm:w-auto sm:min-w-[140px] space-y-1.5">
+          <Label htmlFor="check-out-filter" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Check-Out</Label>
+          <Input
+            id="check-out-filter"
+            type="date"
+            value={checkOutFilter}
+            onChange={(e) => setCheckOutFilter(e.target.value)}
+            className="cursor-pointer"
+          />
+        </div>
+      </FilterBar>
 
       {/* Data table */}
       <DataTable

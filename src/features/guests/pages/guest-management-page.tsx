@@ -5,7 +5,8 @@ import { useAuth } from "@/contexts/auth-context"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { Button } from "@/components/ui/button"
 import { Plus, RefreshCw, Download, MoreHorizontal, BadgeInfo, Edit, Trash2, Phone, Mail, User, CheckCircle2, XCircle } from "lucide-react"
-import { ErrorBanner, DataTable, type ColumnDef } from "@/components/shared"
+import { cn } from "@/lib/utils"
+import { ErrorBanner, DataTable, FilterBar, type ColumnDef } from "@/components/shared"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import {
@@ -18,7 +19,7 @@ import {
 
 import { useSearchParams } from "react-router-dom"
 import type { Guest } from "../types"
-import { FilterBar } from "../components/filter-bar"
+
 import { GuestDetailView } from "../components/guest-detail-view"
 import { GuestFormDialog, DeleteGuestDialog } from "../components/guest-dialogs"
 import type { GuestFormValues } from "../schemas"
@@ -201,14 +202,28 @@ export function GuestManagementPage() {
     {
       header: "Full Name",
       cell: (guest) => (
-        <div className="flex items-center gap-2 font-medium text-foreground">
-          <User className="h-4 w-4 text-muted-foreground shrink-0" />
-          <span>{guest.full_name}</span>
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2 font-medium text-foreground">
+            <User className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span>{guest.full_name}</span>
+          </div>
+          <div className="flex items-center gap-2 mt-0.5 md:hidden">
+            <span className="text-xs text-muted-foreground">{guest.phone_number}</span>
+            <span className={cn(
+              "text-[10px] font-medium px-1.5 py-0.5 rounded-full",
+              guest.is_active
+                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                : "bg-slate-500/15 text-slate-500"
+            )}>
+              {guest.is_active ? "Active" : "Inactive"}
+            </span>
+          </div>
         </div>
       ),
     },
     {
       header: "Phone Number",
+      hideOnMobile: true,
       cell: (guest) => (
         <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
           <Phone className="h-3.5 w-3.5" />
@@ -218,6 +233,7 @@ export function GuestManagementPage() {
     },
     {
       header: "Email Address",
+      hideOnMobile: true,
       cell: (guest) => (
         guest.email ? (
           <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
@@ -231,10 +247,12 @@ export function GuestManagementPage() {
     },
     {
       header: "Document (CNIC/Passport)",
+      hideOnMobile: true,
       cell: (guest) => <span className="text-sm font-mono text-muted-foreground">{guest.document_number}</span>,
     },
     {
       header: "Status",
+      hideOnMobile: true,
       cell: (guest) => (
         guest.is_active ? (
           <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-none hover:bg-emerald-500/15">
@@ -249,6 +267,7 @@ export function GuestManagementPage() {
     },
     {
       header: "Registered",
+      hideOnMobile: true,
       cell: (guest) => <span className="text-xs text-muted-foreground">{formatGuestDate(guest.created_at)}</span>,
     },
     {
@@ -386,13 +405,28 @@ export function GuestManagementPage() {
           <ErrorBanner message={error} onRetry={loadGuests} />
         )}
 
-        {/* Filter bar */}
         <FilterBar
-          search={search}
-          onSearchChange={setSearch}
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
+          search={{
+            value: search,
+            onChange: setSearch,
+            placeholder: "Search by Name, Phone, CNIC/Passport...",
+            label: "Search Guests",
+          }}
+          filters={[
+            {
+              id: "status",
+              label: "Status",
+              value: statusFilter,
+              onValueChange: setStatusFilter,
+              options: [
+                { label: "All Profiles", value: "all" },
+                { label: "Active Only", value: "active" },
+                { label: "Inactive Only", value: "inactive" },
+              ],
+            },
+          ]}
           onReset={resetFilters}
+          isFiltered={search !== "" || statusFilter !== "all"}
         />
 
         {/* Data Table */}

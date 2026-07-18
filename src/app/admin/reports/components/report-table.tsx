@@ -87,6 +87,7 @@ export function ReportTable({ rows, loading }: Props) {
       </div>
     ),
     className: col.align === "right" ? "text-right" : "",
+    hideOnMobile: col.key !== "date" && col.key !== "revenue" && col.key !== "occupancyPct",
     cell: (row) => (
       <span className={col.align === "right" ? "tabular-nums" : "font-medium"}>
         {formatCell(col.key, row)}

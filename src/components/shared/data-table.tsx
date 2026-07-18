@@ -44,6 +44,7 @@ export interface ColumnDef<T> {
   accessorKey?: keyof T | string
   id?: string
   filterFn?: any
+  hideOnMobile?: boolean
 }
 
 interface FilterOption {
@@ -127,7 +128,7 @@ export function DataTable<T>({
         cell: ({ row }) => col.cell(row.original),
         filterFn: col.filterFn,
         meta: {
-          className: col.className,
+          className: cn(col.className, col.hideOnMobile && "hidden md:table-cell"),
         },
       } as TanStackColumnDef<T>
     })

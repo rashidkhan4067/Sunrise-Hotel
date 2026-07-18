@@ -14,4 +14,6 @@ export { EmptyState } from "./empty-state"
 export { PageSkeleton } from "./page-skeleton"
 export { DataTable } from "./data-table"
 export type { ColumnDef } from "./data-table"
+export { FilterBar } from "./filter-bar"
+export type { SelectFilter, FilterOption } from "./filter-bar"
 

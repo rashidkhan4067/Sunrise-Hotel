@@ -39,6 +39,20 @@ import { DeactivateUserDialog } from "../components/deactivate-user-dialog"
 import type { User } from "../types"
 import { fetchUsers, createUser, updateUser, deleteUser, resetUserPassword } from "../api"
 
+const getStatusColor = (status: string) => {
+  return status === "Active"
+    ? "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20"
+    : "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20"
+}
+
+const getRoleColor = (role: string) => {
+  return role === "Admin"
+    ? "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20"
+    : "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20"
+}
+
+
+
 export function UserManagementPage() {
   const { user: currentUser, isLoaded: isUserLoaded } = useUser()
   const { memberships, isLoaded: isOrgLoaded } = useOrganization({
@@ -410,8 +424,8 @@ export function UserManagementPage() {
       accessorKey: "name",
       header: "Full Name",
       cell: (user) => (
-        <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
+        <div className="flex items-center gap-3 min-w-0">
+          <Avatar className="h-8 w-8 shrink-0">
             <AvatarImage 
               src={user.avatar && (user.avatar.startsWith("http") || user.avatar.startsWith("data:")) 
                 ? user.avatar 
@@ -423,23 +437,47 @@ export function UserManagementPage() {
               {getInitials(user.name)}
             </AvatarFallback>
           </Avatar>
-          <span className="font-medium truncate">{user.name}</span>
+          <div className="flex flex-col min-w-0">
+            <span className="font-medium truncate">{user.name}</span>
+            <div className="flex items-center gap-1.5 mt-0.5 md:hidden">
+              <span className={cn(
+                "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
+                user.role === "Admin"
+                  ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                  : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+              )}>
+                {user.role}
+              </span>
+              <span className={cn(
+                "text-[10px] font-medium px-1.5 py-0.5 rounded-full",
+                user.status === "Active"
+                  ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                  : "bg-gray-500/10 text-gray-500 dark:text-gray-400"
+              )}>
+                {user.status}
+              </span>
+            </div>
+            <span className="text-xs text-muted-foreground truncate md:hidden">{user.email}</span>
+          </div>
         </div>
       ),
     },
     {
       accessorKey: "email",
       header: "Email",
+      hideOnMobile: true,
       cell: (user) => <span className="text-muted-foreground">{user.email}</span>,
     },
     {
       accessorKey: "phone",
       header: "Phone Number",
+      hideOnMobile: true,
       cell: (user) => <span>{user.phone || "—"}</span>,
     },
     {
       accessorKey: "role",
       header: "Role",
+      hideOnMobile: true,
       cell: (user) => (
         <Badge variant="secondary" className={cn("px-2 py-0.5", getRoleColor(user.role))}>
           {user.role}
@@ -449,6 +487,7 @@ export function UserManagementPage() {
     {
       accessorKey: "status",
       header: "Status",
+      hideOnMobile: true,
       cell: (user) => (
         <Badge variant="secondary" className={cn("px-2 py-0.5", getStatusColor(user.status))}>
           {user.status}
@@ -458,11 +497,13 @@ export function UserManagementPage() {
     {
       accessorKey: "lastLogin",
       header: "Last Login",
+      hideOnMobile: true,
       cell: (user) => <span>{user.lastLogin || "Never"}</span>,
     },
     {
       accessorKey: "joinedDate",
       header: "Created Date",
+      hideOnMobile: true,
       cell: (user) => <span>{user.joinedDate}</span>,
     },
     {

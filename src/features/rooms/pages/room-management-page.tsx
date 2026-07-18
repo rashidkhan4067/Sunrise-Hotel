@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { Button } from "@/components/ui/button"
 import { StatCard } from "@/components/stat-card"
-import { FilterBar } from "../components/filter-bar"
+
 import { Link } from "react-router-dom"
 import {
   DropdownMenu,
@@ -25,7 +25,7 @@ import {
 } from "../api"
 import { useAuth } from "@/contexts/auth-context"
 import { Plus, Download, RefreshCw, ChevronLeft, ChevronRight, Bed, CheckCircle2, KeyRound, Wrench, TrendingUp, MoreHorizontal, Edit, Trash2, ShieldAlert, BadgeInfo } from "lucide-react"
-import { ErrorBanner, RoomStatusBadge, DataTable, type ColumnDef } from "@/components/shared"
+import { ErrorBanner, RoomStatusBadge, DataTable, FilterBar, type ColumnDef } from "@/components/shared"
 import { toast } from "sonner"
 
 export function RoomManagementPage() {
@@ -219,32 +219,41 @@ export function RoomManagementPage() {
       header: "Room Number",
       className: "w-[140px]",
       cell: (room) => (
-        <span className="font-semibold text-foreground">
-          <Link 
-            to={`/admin/rooms/${room.id}`}
-            className="hover:underline flex items-center gap-2 text-primary focus:outline-none focus:ring-1 focus:ring-primary rounded px-0.5"
-          >
-            <Bed className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span>Room {room.room_number}</span>
-          </Link>
-        </span>
+        <div className="flex flex-col">
+          <span className="font-semibold text-foreground">
+            <Link 
+              to={`/admin/rooms/${room.id}`}
+              className="hover:underline flex items-center gap-2 text-primary focus:outline-none focus:ring-1 focus:ring-primary rounded px-0.5"
+            >
+              <Bed className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span>Room {room.room_number}</span>
+            </Link>
+          </span>
+          <span className="text-xs text-muted-foreground md:hidden mt-0.5">
+            {getTypeLabel(room.room_type)} · ${Number(room.price_per_night).toFixed(2)}/night
+          </span>
+        </div>
       ),
     },
     {
       header: "Type",
+      hideOnMobile: true,
       cell: (room) => <span className="text-muted-foreground">{getTypeLabel(room.room_type)}</span>,
     },
     {
       header: "Floor",
+      hideOnMobile: true,
       cell: (room) => <span className="text-muted-foreground">Floor {room.floor}</span>,
     },
     {
       header: "Capacity",
+      hideOnMobile: true,
       cell: (room) => <span className="text-muted-foreground">{room.capacity} {room.capacity > 1 ? "Guests" : "Guest"}</span>,
     },
     {
       header: "Price / Night",
       className: "text-right",
+      hideOnMobile: true,
       cell: (room) => <span className="font-medium text-foreground">${Number(room.price_per_night).toFixed(2)}</span>,
     },
     {
@@ -403,18 +412,68 @@ export function RoomManagementPage() {
 
         {/* Filter bar */}
         <FilterBar
-          search={search}
-          onSearchChange={setSearch}
-          floorFilter={floorFilter}
-          onFloorFilterChange={setFloorFilter}
-          typeFilter={typeFilter}
-          onTypeFilterChange={setTypeFilter}
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-          sortBy={sortBy}
-          onSortByChange={setSortBy}
-          floors={floors}
+          search={{
+            value: search,
+            onChange: setSearch,
+            placeholder: "Search by room number or type...",
+            label: "Search Rooms",
+          }}
+          filters={[
+            {
+              id: "floor",
+              label: "Floor",
+              value: floorFilter,
+              onValueChange: setFloorFilter,
+              options: [
+                { label: "All Floors", value: "all" },
+                ...floors.map((floor) => ({ label: `Floor ${floor}`, value: floor })),
+              ],
+            },
+            {
+              id: "type",
+              label: "Type",
+              value: typeFilter,
+              onValueChange: setTypeFilter,
+              options: [
+                { label: "All Types", value: "all" },
+                { label: "Single", value: "SINGLE" },
+                { label: "Double", value: "DOUBLE" },
+                { label: "Twin", value: "TWIN" },
+                { label: "Deluxe", value: "DELUXE" },
+                { label: "Suite", value: "SUITE" },
+                { label: "Family", value: "FAMILY" },
+              ],
+            },
+            {
+              id: "status",
+              label: "Status",
+              value: statusFilter,
+              onValueChange: setStatusFilter,
+              options: [
+                { label: "All Status", value: "all" },
+                { label: "Available", value: "AVAILABLE" },
+                { label: "Occupied", value: "OCCUPIED" },
+                { label: "Cleaning", value: "CLEANING" },
+                { label: "Maintenance", value: "MAINTENANCE" },
+              ],
+            },
+            {
+              id: "sortBy",
+              label: "Sort By",
+              value: sortBy,
+              onValueChange: setSortBy,
+              options: [
+                { label: "Room Num (Low-High)", value: "room_number" },
+                { label: "Room Num (High-Low)", value: "-room_number" },
+                { label: "Price (Low-High)", value: "price_per_night" },
+                { label: "Price (High-Low)", value: "-price_per_night" },
+                { label: "Floor (Low-High)", value: "floor" },
+                { label: "Floor (High-Low)", value: "-floor" },
+              ],
+            },
+          ]}
           onReset={handleResetFilters}
+          isFiltered={search !== "" || floorFilter !== "all" || typeFilter !== "all" || statusFilter !== "all" || sortBy !== "room_number"}
         />
 
         {/* Table representation */}
