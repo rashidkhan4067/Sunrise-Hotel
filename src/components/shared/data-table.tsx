@@ -2,16 +2,18 @@
 
 import * as React from "react"
 import {
-  ColumnDef as TanStackColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  VisibilityState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
+} from "@tanstack/react-table"
+import type {
+  ColumnDef as TanStackColumnDef,
+  ColumnFiltersState,
+  SortingState,
+  VisibilityState,
 } from "@tanstack/react-table"
 import { ChevronDown, Download, Search, SlidersHorizontal } from "lucide-react"
 
