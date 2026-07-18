@@ -7,8 +7,9 @@ import { Plus, UserPlus } from "lucide-react"
 
 import { useDashboardData } from "@/hooks/use-dashboard-data"
 import { DashboardSkeleton } from "./components/dashboard-skeleton"
+import { StatCard } from "@/components/stat-card"
+import { Bed, Key, ArrowUpRight, ArrowDownRight, TrendingUp } from "lucide-react"
 import {
-  SummaryCards,
   TodayOperations,
   RoomStatusSummary,
   RecentBookings,
@@ -59,7 +60,48 @@ export default function Page() {
       ) : (
         <div className="@container/main px-4 lg:px-6 space-y-6">
           {/* 1. Summary Cards */}
-          <SummaryCards summary={data.summary} />
+          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                title: "Available Rooms",
+                value: data.summary.availableRooms,
+                icon: Key,
+                badgeText: "Ready",
+                footerText: "Clean & inspected",
+                footerIcon: TrendingUp,
+                footerSubtext: "Available for instant booking",
+              },
+              {
+                title: "Occupied Rooms",
+                value: data.summary.occupiedRooms,
+                icon: Bed,
+                badgeText: "+12.5%",
+                badgeIcon: TrendingUp,
+                footerText: "Trending up this month",
+                footerIcon: TrendingUp,
+                footerSubtext: "Currently checked in guests",
+              },
+              {
+                title: "Today's Check-ins",
+                value: data.summary.todayCheckInsCount,
+                icon: ArrowUpRight,
+                badgeText: "Today",
+                footerText: "Scheduled arrivals",
+                footerIcon: TrendingUp,
+                footerSubtext: "Front desk check-in queue",
+              },
+              {
+                title: "Today's Check-outs",
+                value: data.summary.todayCheckOutsCount,
+                icon: ArrowDownRight,
+                badgeText: "Today",
+                footerText: "Scheduled departures",
+                footerSubtext: "Pending room release & cleaning",
+              },
+            ].map((card) => (
+              <StatCard key={card.title} {...card} />
+            ))}
+          </div>
 
           {/* 2. Main Two-Column Operational Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

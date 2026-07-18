@@ -6,7 +6,13 @@ import { BaseLayout } from "@/components/layouts/base-layout"
 import { Button } from "@/components/ui/button"
 import { StatCard } from "@/components/stat-card"
 import { FilterBar } from "../components/filter-bar"
-import { DataTable } from "../components/data-table"
+import { Link } from "react-router-dom"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu"
 import { AddRoomDialog, EditRoomDialog, ChangeStatusDialog } from "../components/room-dialogs"
 import type { Room } from "../types"
 import type { RoomFormValues } from "../schemas"
@@ -18,8 +24,8 @@ import {
   deleteRoom,
 } from "../api"
 import { useAuth } from "@/contexts/auth-context"
-import { Plus, Download, RefreshCw, ChevronLeft, ChevronRight, Bed, CheckCircle2, KeyRound, Sparkles, Wrench, TrendingUp } from "lucide-react"
-import { ErrorBanner } from "@/components/shared"
+import { Plus, Download, RefreshCw, ChevronLeft, ChevronRight, Bed, CheckCircle2, KeyRound, Wrench, TrendingUp, MoreHorizontal, Edit, Trash2, ShieldAlert, BadgeInfo } from "lucide-react"
+import { ErrorBanner, RoomStatusBadge, DataTable, type ColumnDef } from "@/components/shared"
 import { toast } from "sonner"
 
 export function RoomManagementPage() {
@@ -203,6 +209,113 @@ export function RoomManagementPage() {
     toast.success("Rooms list exported successfully")
   }
 
+  const getTypeLabel = (type: string) => {
+    if (!type) return "—"
+    return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()
+  }
+
+  const columns: ColumnDef<Room>[] = [
+    {
+      header: "Room Number",
+      className: "w-[140px]",
+      cell: (room) => (
+        <span className="font-semibold text-foreground">
+          <Link 
+            to={`/admin/rooms/${room.id}`}
+            className="hover:underline flex items-center gap-2 text-primary focus:outline-none focus:ring-1 focus:ring-primary rounded px-0.5"
+          >
+            <Bed className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span>Room {room.room_number}</span>
+          </Link>
+        </span>
+      ),
+    },
+    {
+      header: "Type",
+      cell: (room) => <span className="text-muted-foreground">{getTypeLabel(room.room_type)}</span>,
+    },
+    {
+      header: "Floor",
+      cell: (room) => <span className="text-muted-foreground">Floor {room.floor}</span>,
+    },
+    {
+      header: "Capacity",
+      cell: (room) => <span className="text-muted-foreground">{room.capacity} {room.capacity > 1 ? "Guests" : "Guest"}</span>,
+    },
+    {
+      header: "Price / Night",
+      className: "text-right",
+      cell: (room) => <span className="font-medium text-foreground">${Number(room.price_per_night).toFixed(2)}</span>,
+    },
+    {
+      header: "Status",
+      className: "text-center",
+      cell: (room) => (
+        <div className="flex justify-center">
+          <RoomStatusBadge status={room.status} />
+        </div>
+      ),
+    },
+    {
+      header: "",
+      className: "w-[80px] text-right",
+      cell: (room) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" aria-label="Room Actions">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => navigate(`/admin/rooms/${room.id}`)} className="cursor-pointer gap-2">
+              <BadgeInfo className="h-3.5 w-3.5 text-muted-foreground" />
+              View Details
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              setSelectedRoom(room)
+              setEditOpen(true)
+            }} className="cursor-pointer gap-2">
+              <Edit className="h-3.5 w-3.5 text-muted-foreground" />
+              Edit Room
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              setSelectedRoom(room)
+              setStatusOpen(true)
+            }} className="cursor-pointer gap-2">
+              <ShieldAlert className="h-3.5 w-3.5 text-muted-foreground" />
+              Change Status
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleArchiveRoom(room)} className="text-destructive cursor-pointer gap-2 hover:!bg-destructive/10">
+              <Trash2 className="h-3.5 w-3.5" />
+              Archive Room
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ]
+
+  const emptyState = (
+    <div className="flex flex-col items-center justify-center text-muted-foreground gap-3">
+      <div className="h-12 w-12 rounded-full bg-muted/40 flex items-center justify-center">
+        <Bed className="h-5 w-5 stroke-1" />
+      </div>
+      <div>
+        <p className="font-semibold text-sm">No rooms found</p>
+        <p className="text-xs text-muted-foreground mt-0.5">Try adjusting your filters or register a new room.</p>
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setAddOpen(true)}
+        className="cursor-pointer gap-1.5 mt-1"
+      >
+        <Plus className="h-4 w-4" />
+        Add Room
+      </Button>
+    </div>
+  )
+
   return (
     <BaseLayout
       title="Rooms"
@@ -247,7 +360,7 @@ export function RoomManagementPage() {
         )}
 
         {/* Summary counts row using single StatCard component */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             {
               title: "Total Rooms",
@@ -274,14 +387,6 @@ export function RoomManagementPage() {
               footerText: "Currently checked in",
               footerIcon: TrendingUp,
               footerSubtext: "Occupied guest rooms",
-            },
-            {
-              title: "Cleaning",
-              value: summary.cleaning,
-              icon: Sparkles,
-              badgeText: "Turnover",
-              footerText: "Housekeeping queue",
-              footerSubtext: "Pending maid release",
             },
             {
               title: "Maintenance",
@@ -314,18 +419,10 @@ export function RoomManagementPage() {
 
         {/* Table representation */}
         <DataTable
-          rooms={rooms}
+          data={rooms}
+          columns={columns}
           loading={isLoading}
-          onViewDetails={(room) => navigate(`/admin/rooms/${room.id}`)}
-          onEdit={(room) => {
-            setSelectedRoom(room)
-            setEditOpen(true)
-          }}
-          onChangeStatus={(room) => {
-            setSelectedRoom(room)
-            setStatusOpen(true)
-          }}
-          onArchive={handleArchiveRoom}
+          emptyState={emptyState}
         />
 
         {/* Server-Side Pagination */}

@@ -2,8 +2,28 @@
 
 import { useState, useEffect } from "react"
 import { BaseLayout } from "@/components/layouts/base-layout"
-import { StatCards } from "../components/stat-cards"
-import { DataTable } from "../components/data-table"
+import { StatCard } from "@/components/stat-card"
+import { Users, UserCheck, Shield, ConciergeBell } from "lucide-react"
+import { cn, getInitials } from "@/lib/utils"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  EllipsisVertical,
+  Eye,
+  Pencil,
+  KeyRound,
+  Ban,
+  Trash2,
+} from "lucide-react"
+import { DataTable, type ColumnDef } from "@/components/shared"
 import { useUser, useOrganization } from "@clerk/react"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
@@ -385,6 +405,148 @@ export function UserManagementPage() {
     setViewOpen(true)
   }
 
+  const columns: ColumnDef<User>[] = [
+    {
+      accessorKey: "name",
+      header: "Full Name",
+      cell: (user) => (
+        <div className="flex items-center gap-3">
+          <Avatar className="h-8 w-8">
+            <AvatarImage 
+              src={user.avatar && (user.avatar.startsWith("http") || user.avatar.startsWith("data:")) 
+                ? user.avatar 
+                : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}`
+              } 
+              alt={user.name} 
+            />
+            <AvatarFallback className="text-xs font-medium">
+              {getInitials(user.name)}
+            </AvatarFallback>
+          </Avatar>
+          <span className="font-medium truncate">{user.name}</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "email",
+      header: "Email",
+      cell: (user) => <span className="text-muted-foreground">{user.email}</span>,
+    },
+    {
+      accessorKey: "phone",
+      header: "Phone Number",
+      cell: (user) => <span>{user.phone || "—"}</span>,
+    },
+    {
+      accessorKey: "role",
+      header: "Role",
+      cell: (user) => (
+        <Badge variant="secondary" className={cn("px-2 py-0.5", getRoleColor(user.role))}>
+          {user.role}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: (user) => (
+        <Badge variant="secondary" className={cn("px-2 py-0.5", getStatusColor(user.status))}>
+          {user.status}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "lastLogin",
+      header: "Last Login",
+      cell: (user) => <span>{user.lastLogin || "Never"}</span>,
+    },
+    {
+      accessorKey: "joinedDate",
+      header: "Created Date",
+      cell: (user) => <span>{user.joinedDate}</span>,
+    },
+    {
+      id: "actions",
+      header: "",
+      className: "w-[120px] text-right",
+      cell: (user) => (
+        <div className="flex items-center justify-end gap-1">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 cursor-pointer text-muted-foreground hover:text-foreground"
+            onClick={() => handleViewUser(user)}
+            title="View details"
+          >
+            <Eye className="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 cursor-pointer text-muted-foreground hover:text-foreground"
+            onClick={() => handleEditUser(user)}
+            title="Edit user"
+          >
+            <Pencil className="size-4" />
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-muted-foreground">
+                <EllipsisVertical className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem className="cursor-pointer" onClick={() => handleViewUser(user)}>
+                <Eye className="mr-2 size-4" />
+                View Details
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer" onClick={() => handleEditUser(user)}>
+                <Pencil className="mr-2 size-4" />
+                Edit Account
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer" onClick={() => handleResetPassword(user)}>
+                <KeyRound className="mr-2 size-4" />
+                Reset Password
+              </DropdownMenuItem>
+              {user.status === "Active" && (
+                <DropdownMenuItem className="cursor-pointer" onClick={() => handleDeactivateClick(user)}>
+                  <Ban className="mr-2 size-4" />
+                  Deactivate
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant="destructive"
+                className="cursor-pointer"
+                onClick={() => handleDeleteUser(user.id)}
+              >
+                <Trash2 className="mr-2 size-4" />
+                Delete User
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      ),
+    },
+  ]
+
+  const emptyState = (
+    <div className="flex flex-col items-center justify-center text-muted-foreground gap-3">
+      <div className="bg-primary/10 text-primary p-4 rounded-full">
+        <Users className="size-8" />
+      </div>
+      <div>
+        <p className="font-semibold text-sm">No staff members found</p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Get started by adding your first hotel administrator or receptionist.
+        </p>
+      </div>
+      <Button onClick={() => setAddOpen(true)} className="cursor-pointer mt-1">
+        Add Staff Member
+      </Button>
+    </div>
+  )
+
   return (
     <BaseLayout 
       title="User Management" 
@@ -393,19 +555,80 @@ export function UserManagementPage() {
       <div className="flex flex-col gap-4">
         {/* Metric Cards */}
         <div className="px-4 lg:px-6">
-          <StatCards users={users} />
+          {!hasInitialized ? (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-[100px] rounded-2xl bg-muted/30" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                {
+                  title: "Total Staff",
+                  value: users.length,
+                  icon: Users,
+                  footerText: "Registered team members",
+                },
+                {
+                  title: "Active Staff",
+                  value: users.filter((u) => u.status === "Active").length,
+                  icon: UserCheck,
+                  footerText: "Currently active staff",
+                },
+                {
+                  title: "Admins",
+                  value: users.filter((u) => u.role === "Admin").length,
+                  icon: Shield,
+                  footerText: "System administrators",
+                },
+                {
+                  title: "Receptionists",
+                  value: users.filter((u) => u.role === "Receptionist").length,
+                  icon: ConciergeBell,
+                  footerText: "Front desk & reservation team",
+                },
+              ].map((card, idx) => (
+                <StatCard key={idx} {...card} />
+              ))}
+            </div>
+          )}
         </div>
         
         {/* Table View */}
         <div className="px-4 lg:px-6 mt-6">
-          <DataTable 
-            users={users}
-            onDeleteUser={handleDeleteUser}
-            onEditUser={handleEditUser}
-            onResetPassword={handleResetPassword}
-            onDeactivateUser={handleDeactivateClick}
-            onViewUser={handleViewUser}
-            onOpenAddDialog={() => setAddOpen(true)}
+          <DataTable
+            data={users}
+            columns={columns}
+            searchKey="name"
+            searchPlaceholder="Search staff members..."
+            showColumnVisibility
+            enableExport
+            exportFilename="sunrise_hotel_staff"
+            exportHeaders={["Full Name", "Email", "Phone Number", "Role", "Status", "Last Login", "Created Date"]}
+            exportMapper={(u) => [u.name, u.email, u.phone || "", u.role, u.status, u.lastLogin || "", u.joinedDate || ""]}
+            paginationMode="client"
+            emptyState={emptyState}
+            filters={[
+              {
+                columnId: "role",
+                label: "Role",
+                options: [
+                  { label: "All Roles", value: "" },
+                  { label: "Admin", value: "Admin" },
+                  { label: "Receptionist", value: "Receptionist" },
+                ],
+              },
+              {
+                columnId: "status",
+                label: "Status",
+                options: [
+                  { label: "All Status", value: "" },
+                  { label: "Active", value: "Active" },
+                  { label: "Inactive", value: "Inactive" },
+                ],
+              },
+            ]}
           />
         </div>
       </div>

@@ -1,19 +1,11 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
 import { ChevronUp, ChevronDown, ChevronsUpDown, FilterX } from "lucide-react"
 import type { ReportRow } from "../types"
 import { formatCurrency } from "@/utils/format"
+import { DataTable, type ColumnDef } from "@/components/shared"
 
 type SortKey = keyof Omit<ReportRow, never>
 type SortDir = "asc" | "desc"
@@ -84,10 +76,38 @@ export function ReportTable({ rows, loading }: Props) {
     }
   }
 
+  const columns: ColumnDef<ReportRow>[] = COLUMNS.map((col) => ({
+    header: (
+      <div 
+        onClick={() => handleSort(col.key)}
+        className={`flex items-center gap-1 cursor-pointer select-none whitespace-nowrap ${col.align === "right" ? "justify-end" : ""}`}
+      >
+        <span>{col.label}</span>
+        <SortIcon col={col.key} sortKey={sortKey} sortDir={sortDir} />
+      </div>
+    ),
+    className: col.align === "right" ? "text-right" : "",
+    cell: (row) => (
+      <span className={col.align === "right" ? "tabular-nums" : "font-medium"}>
+        {formatCell(col.key, row)}
+      </span>
+    ),
+  }))
+
+  const emptyState = (
+    <div className="flex flex-col items-center gap-3 py-8">
+      <FilterX className="h-8 w-8 text-muted-foreground/40" />
+      <p className="text-sm font-medium text-muted-foreground">No report data available</p>
+      <p className="text-xs text-muted-foreground mt-0.5">
+        Try adjusting your filters or selecting a different date range.
+      </p>
+    </div>
+  )
+
   return (
-    <div className="rounded-lg border border-border overflow-hidden">
-      {/* Table header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
+    <div className="space-y-4">
+      {/* Table Title and Summary Header */}
+      <div className="flex items-center justify-between px-4 py-3 border border-border/50 bg-gradient-to-b from-card to-card/90 rounded-xl shadow-2xs">
         <div>
           <p className="text-sm font-semibold text-foreground">Booking Statistics</p>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -96,68 +116,17 @@ export function ReportTable({ rows, loading }: Props) {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-b border-border hover:bg-transparent">
-              {COLUMNS.map((col) => (
-                <TableHead
-                  key={col.key}
-                  className={`text-xs font-medium text-muted-foreground cursor-pointer select-none whitespace-nowrap py-3 ${col.align === "right" ? "text-right" : ""}`}
-                  onClick={() => handleSort(col.key)}
-                  aria-sort={sortKey === col.key ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
-                >
-                  {col.label}
-                  <SortIcon col={col.key} sortKey={sortKey} sortDir={sortDir} />
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <TableRow key={i} className="border-b border-border/50">
-                  {COLUMNS.map((col) => (
-                    <TableCell key={col.key} className={col.align === "right" ? "text-right" : ""}>
-                      <Skeleton className="h-3.5 w-20 inline-block" />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : paged.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={COLUMNS.length} className="py-16 text-center">
-                  <div className="flex flex-col items-center gap-3">
-                    <FilterX className="h-8 w-8 text-muted-foreground/40" />
-                    <p className="text-sm font-medium text-muted-foreground">No report data available</p>
-                    <p className="text-xs text-muted-foreground">
-                      Try adjusting your filters or selecting a different date range.
-                    </p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              paged.map((row) => (
-                <TableRow key={row.date} className="border-b border-border/50 hover:bg-muted/40 transition-colors">
-                  {COLUMNS.map((col) => (
-                    <TableCell
-                      key={col.key}
-                      className={`py-3 text-sm tabular-nums ${col.align === "right" ? "text-right" : "font-medium"}`}
-                    >
-                      {formatCell(col.key, row)}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      {/* Main Table */}
+      <DataTable
+        data={paged}
+        columns={columns}
+        loading={loading}
+        emptyState={emptyState}
+      />
 
       {/* Pagination */}
       {!loading && rows.length > PAGE_SIZE && (
-        <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-card">
+        <div className="flex items-center justify-between px-4 py-3 border border-border/50 bg-card rounded-xl shadow-2xs">
           <p className="text-xs text-muted-foreground">
             Page {page} of {totalPages} · {rows.length} total rows
           </p>
@@ -165,7 +134,7 @@ export function ReportTable({ rows, loading }: Props) {
             <Button
               variant="outline"
               size="sm"
-              className="h-7 text-xs"
+              className="h-7 text-xs cursor-pointer"
               disabled={page === 1}
               onClick={() => setPage((p) => p - 1)}
               aria-label="Previous page"
@@ -175,7 +144,7 @@ export function ReportTable({ rows, loading }: Props) {
             <Button
               variant="outline"
               size="sm"
-              className="h-7 text-xs"
+              className="h-7 text-xs cursor-pointer"
               disabled={page === totalPages}
               onClick={() => setPage((p) => p + 1)}
               aria-label="Next page"

@@ -4,14 +4,21 @@ import { useEffect, useMemo, useState } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { Button } from "@/components/ui/button"
-import { Plus, RefreshCw, Download } from "lucide-react"
-import { ErrorBanner } from "@/components/shared"
+import { Plus, RefreshCw, Download, MoreHorizontal, BadgeInfo, Edit, Trash2, Phone, Mail, User, CheckCircle2, XCircle } from "lucide-react"
+import { ErrorBanner, DataTable, type ColumnDef } from "@/components/shared"
+import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 import { useSearchParams } from "react-router-dom"
 import type { Guest } from "../types"
 import { FilterBar } from "../components/filter-bar"
-import { DataTable } from "../components/data-table"
 import { GuestDetailView } from "../components/guest-detail-view"
 import { GuestFormDialog, DeleteGuestDialog } from "../components/guest-dialogs"
 import type { GuestFormValues } from "../schemas"
@@ -179,6 +186,164 @@ export function GuestManagementPage() {
     toast.success("Guest list exported successfully")
   }
 
+  const isAdmin = role === "org:admin" || role === "Admin" || role === "ADMIN"
+
+  function formatGuestDate(dateStr?: string) {
+    if (!dateStr) return "—"
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    })
+  }
+
+  const guestColumns: ColumnDef<Guest>[] = [
+    {
+      header: "Full Name",
+      cell: (guest) => (
+        <div className="flex items-center gap-2 font-medium text-foreground">
+          <User className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span>{guest.full_name}</span>
+        </div>
+      ),
+    },
+    {
+      header: "Phone Number",
+      cell: (guest) => (
+        <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
+          <Phone className="h-3.5 w-3.5" />
+          <span>{guest.phone_number}</span>
+        </div>
+      ),
+    },
+    {
+      header: "Email Address",
+      cell: (guest) => (
+        guest.email ? (
+          <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
+            <Mail className="h-3.5 w-3.5" />
+            <span>{guest.email}</span>
+          </div>
+        ) : (
+          <span className="text-muted-foreground/45 italic text-sm">No email</span>
+        )
+      ),
+    },
+    {
+      header: "Document (CNIC/Passport)",
+      cell: (guest) => <span className="text-sm font-mono text-muted-foreground">{guest.document_number}</span>,
+    },
+    {
+      header: "Status",
+      cell: (guest) => (
+        guest.is_active ? (
+          <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-none hover:bg-emerald-500/15">
+            Active
+          </Badge>
+        ) : (
+          <Badge className="bg-slate-500/15 text-slate-600 dark:text-slate-400 border-none hover:bg-slate-500/15">
+            Inactive
+          </Badge>
+        )
+      ),
+    },
+    {
+      header: "Registered",
+      cell: (guest) => <span className="text-xs text-muted-foreground">{formatGuestDate(guest.created_at)}</span>,
+    },
+    {
+      header: "",
+      className: "w-[60px] text-right",
+      cell: (guest) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={() => {
+                setSelected(guest)
+                setDetailOpen(true)
+              }}
+              className="cursor-pointer gap-2"
+            >
+              <BadgeInfo className="h-3.5 w-3.5 text-muted-foreground" />
+              View Details
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              onClick={() => {
+                setSelected(guest)
+                setEditOpen(true)
+              }}
+              className="cursor-pointer gap-2"
+            >
+              <Edit className="h-3.5 w-3.5 text-muted-foreground" />
+              Edit Guest
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              onClick={() => handleToggleStatus(guest)}
+              className="cursor-pointer gap-2 text-foreground"
+            >
+              {guest.is_active ? (
+                <>
+                  <XCircle className="h-3.5 w-3.5 text-slate-500" />
+                  Deactivate Guest
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                  Activate Guest
+                </>
+              )}
+            </DropdownMenuItem>
+
+            {isAdmin && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSelected(guest)
+                    setDeleteOpen(true)
+                  }}
+                  className="cursor-pointer gap-2 text-destructive hover:!bg-destructive/10"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete Profile
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ]
+
+  const guestEmptyState = (
+    <div className="flex flex-col items-center justify-center text-muted-foreground gap-3">
+      <div className="h-12 w-12 rounded-full bg-muted/40 flex items-center justify-center">
+        <BadgeInfo className="h-5 w-5" />
+      </div>
+      <div>
+        <p className="font-medium text-sm">No guests found</p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Add a guest profile or search for another name.
+        </p>
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setAddOpen(true)}
+        className="cursor-pointer"
+      >
+        Add First Guest
+      </Button>
+    </div>
+  )
+
   return (
     <BaseLayout
       title="Guests"
@@ -231,33 +396,12 @@ export function GuestManagementPage() {
         />
 
         {/* Data Table */}
-        {loading ? (
-          <div className="border border-border rounded-xl bg-card overflow-hidden">
-            <div className="h-10 bg-muted/30 animate-pulse" />
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-14 border-t border-border bg-background animate-pulse opacity-50" />
-            ))}
-          </div>
-        ) : (
-          <DataTable
-            guests={filtered}
-            role={role}
-            onOpenAddDialog={() => setAddOpen(true)}
-            onViewDetails={(g) => {
-              setSelected(g)
-              setDetailOpen(true)
-            }}
-            onEdit={(g) => {
-              setSelected(g)
-              setEditOpen(true)
-            }}
-            onToggleStatus={handleToggleStatus}
-            onDelete={(g) => {
-              setSelected(g)
-              setDeleteOpen(true)
-            }}
-          />
-        )}
+        <DataTable
+          data={filtered}
+          columns={guestColumns}
+          loading={loading}
+          emptyState={guestEmptyState}
+        />
 
         {/* Dialogs */}
         <GuestFormDialog

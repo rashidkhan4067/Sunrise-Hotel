@@ -3,8 +3,9 @@
 import { useState } from "react"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { Button } from "@/components/ui/button"
-import { FileDown, FileText } from "lucide-react"
-import { ReportSummaryCards } from "./components/report-summary-cards"
+import { FileDown, FileText, ClipboardList, DollarSign, Activity, Users, TrendingUp } from "lucide-react"
+import { StatCard } from "@/components/stat-card"
+import { formatCurrency } from "@/utils/format"
 import { ReportFilterBar } from "./components/report-filter-bar"
 import { ReportTable } from "./components/report-table"
 import { ReportCharts } from "./components/report-charts"
@@ -69,7 +70,54 @@ export default function ReportsPage() {
       actions={actions}
     >
       <div className="px-4 lg:px-6 space-y-6 pb-8">
-        <ReportSummaryCards summary={summary} loading={loading} />
+        {loading ? (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-[100px] rounded-2xl bg-muted/30 animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              {
+                title: "Total Bookings",
+                value: summary.totalBookings,
+                icon: ClipboardList,
+                badgeText: "Period",
+                footerText: "Within selected period",
+                footerSubtext: "All status reservations",
+              },
+              {
+                title: "Total Revenue",
+                value: formatCurrency(summary.totalRevenue),
+                icon: DollarSign,
+                badgeText: "+12.5%",
+                footerText: "Trending up this period",
+                footerIcon: TrendingUp,
+                footerSubtext: "Confirmed + checked-out stays",
+              },
+              {
+                title: "Occupancy Rate",
+                value: `${summary.occupancyRate}%`,
+                icon: Activity,
+                badgeText: "+4.5%",
+                footerText: "Steady performance increase",
+                footerIcon: TrendingUp,
+                footerSubtext: "Average across selected period",
+              },
+              {
+                title: "Active Guests",
+                value: summary.activeGuests,
+                icon: Users,
+                badgeText: "Profiles",
+                footerText: "Registered guest profiles",
+                footerSubtext: "Verified system accounts",
+              },
+            ].map((c) => (
+              <StatCard key={c.title} {...c} />
+            ))}
+          </div>
+        )}
         <ReportFilterBar filters={filters} onChange={setFilters} />
         <ReportCharts rows={rows} loading={loading} />
         <ReportTable rows={rows} loading={loading} />

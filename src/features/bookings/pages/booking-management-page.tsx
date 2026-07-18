@@ -4,14 +4,21 @@ import { useEffect, useMemo, useState } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { Button } from "@/components/ui/button"
-import { Plus, RefreshCw, ClipboardList, Clock, LogIn, LogOut, XCircle, TrendingUp } from "lucide-react"
-import { ErrorBanner } from "@/components/shared"
+import { Plus, RefreshCw, ClipboardList, Clock, LogIn, LogOut, TrendingUp, MoreHorizontal, BadgeInfo, Edit, XCircle, Trash2 } from "lucide-react"
+import { ErrorBanner, BookingStatusBadge, DataTable, type ColumnDef } from "@/components/shared"
 import { StatCard } from "@/components/stat-card"
 import { toast } from "sonner"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 import type { Booking } from "../types"
 import { FilterBar } from "../components/filter-bar"
-import { DataTable } from "../components/data-table"
+import { formatDate, formatShortId } from "@/utils/format"
 import { BookingDetailView } from "../components/booking-detail-view"
 import {
   BookingFormDialog,
@@ -208,6 +215,190 @@ export function BookingManagementPage() {
     }
   }
 
+  const isAdmin = role === "org:admin" || role === "Admin" || role === "ADMIN"
+
+  const bookingColumns: ColumnDef<Booking>[] = [
+    {
+      header: "Booking ID",
+      className: "w-[120px]",
+      cell: (booking) => (
+        <span className="font-mono text-xs text-muted-foreground">
+          #{formatShortId(booking.booking_id)}
+        </span>
+      ),
+    },
+    {
+      header: "Guest",
+      cell: (booking) => (
+        <div className="flex flex-col">
+          <span className="font-medium text-foreground text-sm">
+            {booking.guest_details?.full_name || "—"}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {booking.guest_details?.phone_number || ""}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: "Room",
+      cell: (booking) => (
+        <div className="flex flex-col">
+          <span className="font-medium text-foreground text-sm">
+            Room {booking.room_details?.room_number || "—"}
+          </span>
+          <span className="text-xs text-muted-foreground capitalize">
+            {booking.room_details?.room_type?.toLowerCase() || ""}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: "Check-in",
+      cell: (booking) => <span className="text-sm text-muted-foreground">{formatDate(booking.check_in)}</span>,
+    },
+    {
+      header: "Check-out",
+      cell: (booking) => <span className="text-sm text-muted-foreground">{formatDate(booking.check_out)}</span>,
+    },
+    {
+      header: "Guests",
+      cell: (booking) => (
+        <span className="text-sm text-muted-foreground">
+          {booking.adults}A {booking.children > 0 ? `${booking.children}C` : ""}
+        </span>
+      ),
+    },
+    {
+      header: "Status",
+      cell: (booking) => <BookingStatusBadge status={booking.status} />,
+    },
+    {
+      header: "Created",
+      cell: (booking) => <span className="text-xs text-muted-foreground">{formatDate(booking.created_at)}</span>,
+    },
+    {
+      header: "",
+      className: "w-[60px] text-right",
+      cell: (booking) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={() => {
+                setSelected(booking)
+                setDetailOpen(true)
+              }}
+              className="cursor-pointer gap-2"
+            >
+              <BadgeInfo className="h-3.5 w-3.5 text-muted-foreground" />
+              View Details
+            </DropdownMenuItem>
+
+            {(booking.status === "PENDING" || booking.status === "CONFIRMED") && (
+              <DropdownMenuItem
+                onClick={() => {
+                  setSelected(booking)
+                  setEditOpen(true)
+                }}
+                className="cursor-pointer gap-2"
+              >
+                <Edit className="h-3.5 w-3.5 text-muted-foreground" />
+                Edit Booking
+              </DropdownMenuItem>
+            )}
+
+            {(booking.status === "PENDING" || booking.status === "CONFIRMED") && (
+              <DropdownMenuItem
+                onClick={() => {
+                  setSelected(booking)
+                  setCheckInOpen(true)
+                }}
+                className="cursor-pointer gap-2"
+              >
+                <LogIn className="h-3.5 w-3.5 text-emerald-500" />
+                Check-In
+              </DropdownMenuItem>
+            )}
+
+            {booking.status === "CHECKED_IN" && (
+              <DropdownMenuItem
+                onClick={() => {
+                  setSelected(booking)
+                  setCheckOutOpen(true)
+                }}
+                className="cursor-pointer gap-2"
+              >
+                <LogOut className="h-3.5 w-3.5 text-blue-500" />
+                Check-Out
+              </DropdownMenuItem>
+            )}
+
+            {(booking.status === "PENDING" ||
+              booking.status === "CONFIRMED" ||
+              booking.status === "CHECKED_IN") && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSelected(booking)
+                    setCancelOpen(true)
+                  }}
+                  className="cursor-pointer gap-2 text-amber-600 hover:!bg-amber-500/10"
+                >
+                  <XCircle className="h-3.5 w-3.5" />
+                  Cancel Booking
+                </DropdownMenuItem>
+              </>
+            )}
+
+            {isAdmin && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSelected(booking)
+                    setDeleteOpen(true)
+                  }}
+                  className="cursor-pointer gap-2 text-destructive hover:!bg-destructive/10"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ]
+
+  const bookingEmptyState = (
+    <div className="flex flex-col items-center justify-center text-muted-foreground gap-3">
+      <div className="h-12 w-12 rounded-full bg-muted/40 flex items-center justify-center">
+        <BadgeInfo className="h-5 w-5" />
+      </div>
+      <div>
+        <p className="font-medium text-sm">No bookings found</p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Try adjusting your filters or create a new booking.
+        </p>
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setAddOpen(true)}
+        className="cursor-pointer"
+      >
+        Create First Booking
+      </Button>
+    </div>
+  )
+
   // ─── Render ───────────────────────────────────
   return (
     <BaseLayout
@@ -245,13 +436,13 @@ export function BookingManagementPage() {
 
       {/* Summary cards using single StatCard component */}
       {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-[100px] rounded-2xl bg-muted/30 animate-pulse" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-[105px] rounded-xl bg-muted/30 animate-pulse" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             {
               title: "Total Bookings",
@@ -286,14 +477,6 @@ export function BookingManagementPage() {
               footerText: "Fulfilled stays",
               footerSubtext: "Departure queue completed",
             },
-            {
-              title: "Cancelled",
-              value: bookings.filter((b) => b.status === "CANCELLED").length,
-              icon: XCircle,
-              badgeText: "Cancelled",
-              footerText: "Voided reservations",
-              footerSubtext: "Released room availability",
-            },
           ].map((s) => (
             <StatCard key={s.title} {...s} />
           ))}
@@ -316,44 +499,12 @@ export function BookingManagementPage() {
       />
 
       {/* Data table */}
-      {loading ? (
-        <div className="border border-border rounded-xl bg-card overflow-hidden">
-          <div className="h-10 bg-muted/30 animate-pulse" />
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-14 border-t border-border bg-background animate-pulse opacity-50" />
-          ))}
-        </div>
-      ) : (
-        <DataTable
-          bookings={filtered}
-          role={role}
-          onOpenAddDialog={() => setAddOpen(true)}
-          onViewDetails={(b) => {
-            setSelected(b)
-            setDetailOpen(true)
-          }}
-          onEdit={(b) => {
-            setSelected(b)
-            setEditOpen(true)
-          }}
-          onCheckIn={(b) => {
-            setSelected(b)
-            setCheckInOpen(true)
-          }}
-          onCheckOut={(b) => {
-            setSelected(b)
-            setCheckOutOpen(true)
-          }}
-          onCancel={(b) => {
-            setSelected(b)
-            setCancelOpen(true)
-          }}
-          onDelete={(b) => {
-            setSelected(b)
-            setDeleteOpen(true)
-          }}
-        />
-      )}
+      <DataTable
+        data={filtered}
+        columns={bookingColumns}
+        loading={loading}
+        emptyState={bookingEmptyState}
+      />
 
       {/* Dialogs */}
       <BookingFormDialog
