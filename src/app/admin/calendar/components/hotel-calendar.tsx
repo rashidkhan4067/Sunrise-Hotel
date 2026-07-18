@@ -657,12 +657,14 @@ export function HotelCalendar() {
         <SheetContent className="sm:max-w-md w-full overflow-y-auto">
           {selectedBooking && (
             <>
-              <SheetHeader className="pb-4 border-b border-border">
-                <div className="flex items-center justify-between">
-                  <Badge className={cn("text-xs font-bold border-none", STATUS_CONFIG[selectedBooking.status]?.bg, STATUS_CONFIG[selectedBooking.status]?.text)}>
+              <SheetHeader className="pb-4 border-b border-border relative pr-8">
+                <div className="flex items-center justify-between gap-4">
+                  <Badge className={cn("text-xs font-bold border-none shrink-0", STATUS_CONFIG[selectedBooking.status]?.bg, STATUS_CONFIG[selectedBooking.status]?.text)}>
                     {STATUS_CONFIG[selectedBooking.status]?.label}
                   </Badge>
-                  <span className="text-xs text-muted-foreground font-mono">#{selectedBooking.booking_id}</span>
+                  <span className="text-xs text-muted-foreground font-mono truncate max-w-[180px] sm:max-w-none" title={selectedBooking.booking_id}>
+                    #{selectedBooking.booking_id}
+                  </span>
                 </div>
                 <SheetTitle className="text-lg font-bold text-foreground pt-2">
                   {selectedBooking.guest_details?.full_name || "Guest Reservation"}
@@ -730,56 +732,54 @@ export function HotelCalendar() {
               </div>
 
               {/* Action Buttons in Sheet Footer */}
-              <SheetFooter className="border-t border-border pt-4 flex flex-col gap-2">
-                <div className="grid grid-cols-2 gap-2 w-full">
-                  {/* Check In Action */}
+              <SheetFooter className="border-t border-border pt-4">
+                <div className="flex flex-col gap-2.5 w-full">
+                  {/* Primary actions (Check-In / Check-Out) */}
                   {(selectedBooking.status === "PENDING" || selectedBooking.status === "CONFIRMED") && (
                     <Button
                       onClick={handleCheckIn}
                       disabled={actionLoading}
-                      className="cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                      className="cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white gap-2 w-full py-2.5 h-11 text-sm font-semibold"
                     >
                       {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
-                      Check-In
+                      Check-In Guest
                     </Button>
                   )}
 
-                  {/* Check Out Action */}
                   {selectedBooking.status === "CHECKED_IN" && (
                     <Button
                       onClick={handleCheckOut}
                       disabled={actionLoading}
-                      className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white gap-1"
+                      className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white gap-2 w-full py-2.5 h-11 text-sm font-semibold"
                     >
                       {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-                      Check-Out
+                      Check-Out Guest
                     </Button>
                   )}
 
-                  {/* Edit action */}
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setEditOpen(true)
-                    }}
-                    disabled={actionLoading}
-                    className="cursor-pointer gap-1"
-                  >
-                    <Edit className="h-4 w-4" />
-                    Edit Details
-                  </Button>
-
-                  {/* Cancel Action */}
-                  {(selectedBooking.status === "PENDING" || selectedBooking.status === "CONFIRMED") && (
+                  {/* Secondary actions: Edit & Cancel (side-by-side or stacked) */}
+                  <div className="flex gap-2 w-full">
                     <Button
                       variant="outline"
-                      onClick={handleCancel}
+                      onClick={() => setEditOpen(true)}
                       disabled={actionLoading}
-                      className="cursor-pointer text-amber-600 border-amber-200 hover:bg-amber-50"
+                      className="cursor-pointer gap-1.5 flex-1 h-10"
                     >
-                      Cancel Booking
+                      <Edit className="h-4 w-4" />
+                      Edit Details
                     </Button>
-                  )}
+
+                    {(selectedBooking.status === "PENDING" || selectedBooking.status === "CONFIRMED") && (
+                      <Button
+                        variant="outline"
+                        onClick={handleCancel}
+                        disabled={actionLoading}
+                        className="cursor-pointer text-amber-600 border-amber-200 hover:bg-amber-50 hover:text-amber-700 flex-1 h-10"
+                      >
+                        Cancel Booking
+                      </Button>
+                    )}
+                  </div>
 
                   {/* Delete Action (Admin Only) */}
                   {isAdmin && (
@@ -787,10 +787,10 @@ export function HotelCalendar() {
                       variant="destructive"
                       onClick={() => setDeleteConfirmOpen(true)}
                       disabled={actionLoading}
-                      className="cursor-pointer col-span-2 gap-1"
+                      className="cursor-pointer gap-1.5 w-full h-10 mt-1"
                     >
                       <Trash2 className="h-4 w-4" />
-                      Delete Permanently
+                      Delete Reservation
                     </Button>
                   )}
                 </div>
