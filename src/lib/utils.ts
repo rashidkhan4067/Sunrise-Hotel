@@ -31,7 +31,9 @@ export function getAppUrl(path: string): string {
  */
 export function getInitials(name: string): string {
   if (!name) return "U"
-  const cleanName = name.trim()
+  
+  // Clean up parenthetical tags like (Client) or (Admin) and any non-alphabetical characters
+  const cleanName = name.replace(/\([^)]*\)/g, "").replace(/[^a-zA-Z\s]/g, "").trim()
   if (!cleanName) return "U"
   
   const names = cleanName.split(/\s+/)

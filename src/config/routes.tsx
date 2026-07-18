@@ -2,39 +2,40 @@ import { lazy } from 'react'
 import { Navigate } from 'react-router-dom'
 import { AdminRoute } from '@/components/admin-route'
 import { ProtectedRoute } from '@/components/router/protected-route'
+import { useAuth } from '@/contexts/auth-context'
+import { RouteProgress } from '@/components/route-progress'
 
-// Lazy load components for better performance
-const Landing = lazy(() => import('@/app/landing/page'))
-const Dashboard = lazy(() => import('@/app/dashboard/page'))
-const Dashboard2 = lazy(() => import('@/app/dashboard-2/page'))
-const Mail = lazy(() => import('@/app/mail/page'))
-const Tasks = lazy(() => import('@/app/tasks/page'))
-const Chat = lazy(() => import('@/app/chat/page'))
-const Calendar = lazy(() => import('@/app/calendar/page'))
-const Users = lazy(() => import('@/app/users/page'))
-const FAQs = lazy(() => import('@/app/faqs/page'))
-const Pricing = lazy(() => import('@/app/pricing/page'))
+// ─── Admin Pages ───────────────────────────────────────────────
+const Dashboard = lazy(() => import('@/app/admin/dashboard/page'))
+const Reports = lazy(() => import('@/app/admin/reports/page'))
+const Calendar = lazy(() => import('@/app/admin/calendar/page'))
+const Users = lazy(() => import('@/app/admin/users/page'))
+const Rooms = lazy(() => import('@/app/admin/rooms/page'))
+const RoomDetail = lazy(() => import('@/app/admin/rooms/detail-page'))
+const Bookings = lazy(() => import('@/app/admin/bookings/page'))
+const Guests = lazy(() => import('@/app/admin/guests/page'))
 
-// Auth pages
+// ─── Settings Pages ────────────────────────────────────────────
+const HotelSettings = lazy(() => import('@/app/admin/settings/hotel/page'))
+const UserSettings = lazy(() => import('@/app/admin/settings/user/page'))
+const PasswordSettings = lazy(() => import('@/app/admin/settings/password/page'))
+const PreferencesSettings = lazy(() => import('@/app/admin/settings/preferences/page'))
+
+// ─── Auth Pages (utility routes — not sidebar items) ───────────
 const SignIn = lazy(() => import('@/app/auth/sign-in/page'))
 const SignUp = lazy(() => import('@/app/auth/sign-up/page'))
 const ForgotPassword = lazy(() => import('@/app/auth/forgot-password/page'))
 const SSOCallback = lazy(() => import('@/app/auth/sso-callback/page'))
 
-// Error pages
+// ─── Error Pages (utility routes — not sidebar items) ──────────
 const Unauthorized = lazy(() => import('@/app/errors/unauthorized/page'))
 const Forbidden = lazy(() => import('@/app/errors/forbidden/page'))
 const NotFound = lazy(() => import('@/app/errors/not-found/page'))
 const InternalServerError = lazy(() => import('@/app/errors/internal-server-error/page'))
 const UnderMaintenance = lazy(() => import('@/app/errors/under-maintenance/page'))
 
-// Settings pages
-const UserSettings = lazy(() => import('@/app/settings/user/page'))
-const AccountSettings = lazy(() => import('@/app/settings/account/page'))
-const BillingSettings = lazy(() => import('@/app/settings/billing/page'))
-const AppearanceSettings = lazy(() => import('@/app/settings/appearance/page'))
-const NotificationSettings = lazy(() => import('@/app/settings/notifications/page'))
-const ConnectionSettings = lazy(() => import('@/app/settings/connections/page'))
+// ─── Client Pages ──────────────────────────────────────────────
+const ClientDashboard = lazy(() => import('@/app/client/dashboard/page'))
 
 export interface RouteConfig {
   path: string
@@ -42,63 +43,99 @@ export interface RouteConfig {
   children?: RouteConfig[]
 }
 
+// Smart redirect at root path based on auth state
+function RootRedirect() {
+  const { isAuthenticated, role, isLoading } = useAuth()
+
+  if (isLoading) {
+    return <RouteProgress />
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/auth/sign-in" replace />
+  }
+
+  return <Navigate to={role === "org:admin" ? "/admin/dashboard" : "/client/dashboard"} replace />
+}
+
 export const routes: RouteConfig[] = [
-  // Default route - redirect to dashboard
-  // Use relative path "dashboard" instead of "/dashboard" for basename compatibility
+  // Root redirect
   {
     path: "/",
-    element: <Navigate to="dashboard" replace />
+    element: <RootRedirect />
   },
 
-  // Landing Page
+  // ─── Admin: Hotel Modules ───────────────────────────────────
   {
-    path: "/landing",
-    element: <Landing />
-  },
-
-  // Dashboard Routes
-  {
-    path: "/dashboard",
-    element: <Dashboard />
+    path: "/admin/dashboard",
+    element: <AdminRoute><Dashboard /></AdminRoute>
   },
   {
-    path: "/dashboard-2",
-    element: <Dashboard2 />
-  },
-
-  // Application Routes
-  {
-    path: "/mail",
-    element: <Mail />
+    path: "/admin/reports",
+    element: <AdminRoute><Reports /></AdminRoute>
   },
   {
-    path: "/tasks",
-    element: <Tasks />
+    path: "/admin/bookings",
+    element: <AdminRoute><Bookings /></AdminRoute>
   },
   {
-    path: "/chat",
-    element: <Chat />
+    path: "/admin/calendar",
+    element: <AdminRoute><Calendar /></AdminRoute>
   },
   {
-    path: "/calendar",
-    element: <Calendar />
+    path: "/admin/rooms",
+    element: <AdminRoute><Rooms /></AdminRoute>
   },
-
-  // Content Pages
   {
-    path: "/users",
+    path: "/admin/rooms/:id",
+    element: <AdminRoute><RoomDetail /></AdminRoute>
+  },
+  {
+    path: "/admin/guests",
+    element: <AdminRoute><Guests /></AdminRoute>
+  },
+  {
+    path: "/admin/users",
     element: <AdminRoute><Users /></AdminRoute>
   },
+
+  // ─── Admin: Settings ────────────────────────────────────────
   {
-    path: "/faqs",
-    element: <FAQs />
+    path: "/admin/settings/hotel",
+    element: <ProtectedRoute><HotelSettings /></ProtectedRoute>
   },
   {
-    path: "/pricing",
-    element: <Pricing />
+    path: "/admin/settings/user",
+    element: <ProtectedRoute><UserSettings /></ProtectedRoute>
+  },
+  {
+    path: "/admin/settings/password",
+    element: <ProtectedRoute><PasswordSettings /></ProtectedRoute>
+  },
+  {
+    path: "/admin/settings/preferences",
+    element: <ProtectedRoute><PreferencesSettings /></ProtectedRoute>
   },
 
-  // Authentication Routes
+  // ─── Client Portal ──────────────────────────────────────────
+  {
+    path: "/client/dashboard",
+    element: <ProtectedRoute><ClientDashboard /></ProtectedRoute>
+  },
+  {
+    path: "/client/settings/user",
+    element: <ProtectedRoute><UserSettings /></ProtectedRoute>
+  },
+  {
+    path: "/client/settings/password",
+    element: <ProtectedRoute><PasswordSettings /></ProtectedRoute>
+  },
+  {
+    path: "/client/settings/preferences",
+    element: <ProtectedRoute><PreferencesSettings /></ProtectedRoute>
+  },
+
+  // ─── Auth (utility routes) ───────────────────────────────────
   {
     path: "/auth/sign-in",
     element: <SignIn />
@@ -111,13 +148,12 @@ export const routes: RouteConfig[] = [
     path: "/auth/forgot-password",
     element: <ForgotPassword />
   },
-
   {
     path: "/sso-callback",
     element: <SSOCallback />
   },
 
-  // Error Pages
+  // ─── Error Pages (utility routes) ────────────────────────────
   {
     path: "/errors/unauthorized",
     element: <Unauthorized />
@@ -139,33 +175,7 @@ export const routes: RouteConfig[] = [
     element: <UnderMaintenance />
   },
 
-  // Settings Routes
-  {
-    path: "/settings/user",
-    element: <ProtectedRoute><UserSettings /></ProtectedRoute>
-  },
-  {
-    path: "/settings/account",
-    element: <ProtectedRoute><AccountSettings /></ProtectedRoute>
-  },
-  {
-    path: "/settings/billing",
-    element: <ProtectedRoute><BillingSettings /></ProtectedRoute>
-  },
-  {
-    path: "/settings/appearance",
-    element: <ProtectedRoute><AppearanceSettings /></ProtectedRoute>
-  },
-  {
-    path: "/settings/notifications",
-    element: <ProtectedRoute><NotificationSettings /></ProtectedRoute>
-  },
-  {
-    path: "/settings/connections",
-    element: <ProtectedRoute><ConnectionSettings /></ProtectedRoute>
-  },
-
-  // Catch-all route for 404
+  // ─── 404 catch-all ───────────────────────────────────────────
   {
     path: "*",
     element: <NotFound />

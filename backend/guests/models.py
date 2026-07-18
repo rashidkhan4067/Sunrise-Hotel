@@ -9,6 +9,7 @@ class Guest(models.Model):
     email = models.EmailField(blank=True, null=True)
     document_number = models.CharField(max_length=50, help_text="CNIC / Passport Number")
     address = models.TextField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

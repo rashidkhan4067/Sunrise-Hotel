@@ -5,25 +5,30 @@ User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ('id', 'email', 'first_name', 'last_name', 'role', 'is_active', 'date_joined')
-        read_only_fields = ('id', 'is_active', 'date_joined')
-
-
-class UserRegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    password = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = User
-        fields = ('email', 'password', 'first_name', 'last_name', 'role')
+        fields = ('id', 'email', 'first_name', 'last_name', 'phone', 'role', 'is_active', 'password', 'date_joined', 'clerk_id')
+        read_only_fields = ('id', 'date_joined')
 
     def create(self, validated_data):
-        user = User.objects.create_user(
-            email=validated_data['email'],
-            password=validated_data['password'],
-            first_name=validated_data.get('first_name', ''),
-            last_name=validated_data.get('last_name', ''),
-            role=validated_data.get('role', 'RECEPTIONIST')
-        )
+        password = validated_data.pop('password', None)
+        # Map first_name and last_name if present
+        user = User.objects.create_user(**validated_data)
+        if password:
+            user.set_password(password)
+            user.save()
         return user
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
+
+
+

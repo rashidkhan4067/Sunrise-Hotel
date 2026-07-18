@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useLocation } from "react-router-dom"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
@@ -19,11 +20,16 @@ interface BaseLayoutProps {
   title?: string
   description?: string
   actions?: React.ReactNode
+  role?: "admin" | "client"
 }
 
-export function BaseLayout({ children, title, description, actions }: BaseLayoutProps) {
+export function BaseLayout({ children, title, description, actions, role }: BaseLayoutProps) {
   useDocumentTitle(title)
   const { config } = useSidebarConfig()
+  const location = useLocation()
+
+  // Infer role based on URL prefix if not explicitly passed as prop
+  const activeRole = role || (location.pathname.startsWith("/client") ? "client" : "admin")
 
   const headerContent = (
     <div className="px-4 lg:px-6 flex flex-col gap-1.5">
@@ -59,6 +65,7 @@ export function BaseLayout({ children, title, description, actions }: BaseLayout
             variant={config.variant} 
             collapsible={config.collapsible} 
             side={config.side} 
+            role={activeRole}
           />
           <SidebarInset>
             <SiteHeader />
@@ -91,6 +98,7 @@ export function BaseLayout({ children, title, description, actions }: BaseLayout
             variant={config.variant} 
             collapsible={config.collapsible} 
             side={config.side} 
+            role={activeRole}
           />
         </>
       )}

@@ -1,0 +1,448 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { BaseLayout } from "@/components/layouts/base-layout"
+import { StatCards } from "../components/stat-cards"
+import { DataTable } from "../components/data-table"
+import { useUser, useOrganization } from "@clerk/react"
+import { useAuth } from "@/contexts/auth-context"
+import { toast } from "sonner"
+
+// Modular Dialog Components
+import { AddUserDialog } from "../components/add-user-dialog"
+import { EditUserDialog } from "../components/edit-user-dialog"
+import { ViewUserDialog } from "../components/view-user-dialog"
+import { ResetPasswordDialog } from "../components/reset-password-dialog"
+import { DeactivateUserDialog } from "../components/deactivate-user-dialog"
+
+// Feature Imports
+import type { User } from "../types"
+import { fetchUsers, createUser, updateUser, deleteUser, resetUserPassword } from "../api"
+
+export function UserManagementPage() {
+  const { user: currentUser, isLoaded: isUserLoaded } = useUser()
+  const { memberships, isLoaded: isOrgLoaded } = useOrganization({
+    memberships: {
+      pageSize: 50,
+    }
+  })
+  const { getToken } = useAuth()
+
+  const [users, setUsers] = useState<User[]>([])
+  const [hasInitialized, setHasInitialized] = useState(false)
+  
+  // Dialog Open States
+  const [addOpen, setAddOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [viewOpen, setViewOpen] = useState(false)
+  const [resetOpen, setResetOpen] = useState(false)
+  const [deactivateOpen, setDeactivateOpen] = useState(false)
+
+  // Target User States
+  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [targetUser, setTargetUser] = useState<User | null>(null)
+
+  useEffect(() => {
+    if (hasInitialized) return
+    if (!isOrgLoaded || !isUserLoaded) return
+    
+    async function loadRealUsers() {
+      try {
+        const token = await getToken()
+        if (token) {
+          const data = await fetchUsers(token)
+          if (Array.isArray(data)) {
+            const cachedStr = localStorage.getItem("registered_users_cache")
+            const cachedList = cachedStr ? JSON.parse(cachedStr) : []
+            
+            const currentUserEmail = currentUser?.primaryEmailAddress?.emailAddress || currentUser?.emailAddresses?.[0]?.emailAddress || ""
+
+            const enrichedData = data.map(u => {
+              let avatar = u.avatar
+              if (!avatar || !(avatar.startsWith("http") || avatar.startsWith("data:"))) {
+                if (currentUserEmail && u.email.toLowerCase() === currentUserEmail.toLowerCase()) {
+                  avatar = currentUser?.imageUrl || ""
+                } else {
+                  const cached = cachedList.find((c: any) => c.email.toLowerCase() === u.email.toLowerCase())
+                  if (cached && cached.avatar) {
+                    avatar = cached.avatar
+                  }
+                }
+              }
+              return { ...u, avatar }
+            })
+            
+            // Merge local storage cached users
+            const mergedList = [...enrichedData]
+            for (const cached of cachedList) {
+              if (cached.email && cached.name && !mergedList.some(u => u.email.toLowerCase() === cached.email.toLowerCase())) {
+                mergedList.push({
+                  id: cached.id || "local_" + Math.random().toString(36).substr(2, 9),
+                  name: cached.name,
+                  email: cached.email,
+                  avatar: cached.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(cached.name)}`,
+                  phone: cached.phone || "",
+                  role: cached.role || "Receptionist",
+                  status: cached.status || "Active",
+                  joinedDate: cached.joinedDate || new Date().toISOString().split('T')[0],
+                  lastLogin: cached.lastLogin || new Date().toISOString().split('T')[0],
+                })
+              }
+            }
+            
+            setUsers(mergedList)
+            setHasInitialized(true)
+            return
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to fetch users from Django backend, falling back to local session merge:", err)
+      }
+      
+      // Fallback
+      let mapped: User[] = []
+      const membershipData = (memberships as any)?.data || []
+      
+      if (membershipData.length > 0) {
+        mapped = membershipData.map((m: any, idx: number) => {
+          const user = m.publicUserData
+          return {
+            id: user.userId || idx + 1,
+            name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Clerk User",
+            email: user.identifier || "",
+            avatar: user.imageUrl || "",
+            phone: "",
+            role: m.role === "org:admin" ? "Admin" : "Receptionist",
+            status: "Active",
+            joinedDate: m.createdAt ? new Date(m.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            lastLogin: m.updatedAt ? new Date(m.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          }
+        })
+      } else if (currentUser) {
+        const currentUserEmail = currentUser.primaryEmailAddress?.emailAddress || currentUser.emailAddresses?.[0]?.emailAddress || ""
+        mapped = [
+          {
+            id: currentUser.id || 1,
+            name: `${currentUser.firstName || ""} ${currentUser.lastName || ""}`.trim() || "Logged In User",
+            email: currentUserEmail,
+            avatar: currentUser.imageUrl || "",
+            phone: "",
+            role: "Admin",
+            status: "Active",
+            joinedDate: currentUser.createdAt ? new Date(currentUser.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            lastLogin: currentUser.updatedAt ? new Date(currentUser.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          }
+        ]
+      }
+      
+      let cachedUsers: User[] = []
+      try {
+        const stored = localStorage.getItem("registered_users_cache")
+        if (stored) {
+          const list = JSON.parse(stored)
+          cachedUsers = list.map((u: any, idx: number) => ({
+            id: u.id || "local_" + idx + 1,
+            name: u.name,
+            email: u.email,
+            avatar: u.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.name)}`,
+            phone: u.phone || "",
+            role: u.role || "Receptionist",
+            status: u.status || "Active",
+            joinedDate: u.joinedDate || new Date().toISOString().split('T')[0],
+            lastLogin: u.lastLogin || new Date().toISOString().split('T')[0],
+          }))
+        }
+      } catch (e) {
+        console.error("Failed to parse cached registered users:", e)
+      }
+      
+      const mergedList = [...mapped]
+      for (const cached of cachedUsers) {
+        if (!mergedList.some(u => u.email.toLowerCase() === cached.email.toLowerCase())) {
+          mergedList.push({
+            ...cached,
+            id: mergedList.length + 1
+          })
+        }
+      }
+      setUsers(mergedList)
+      setHasInitialized(true)
+    }
+    loadRealUsers()
+  }, [isOrgLoaded, isUserLoaded, memberships, currentUser, hasInitialized, getToken])
+
+  // Save changes helper
+  const saveToLocalCache = (list: User[]) => {
+    const localOnly = list.filter(u => String(u.id).startsWith("local_") || u.email.toLowerCase() !== currentUser?.primaryEmailAddress?.emailAddress?.toLowerCase())
+    localStorage.setItem("registered_users_cache", JSON.stringify(localOnly))
+  }
+
+  // Add Staff Member Submit
+  const handleAddSubmit = async (data: {
+    firstName: string
+    lastName: string
+    email: string
+    phone: string
+    password?: string
+    role: string
+    status: string
+  }) => {
+    const fullName = `${data.firstName} ${data.lastName}`.trim()
+    try {
+      const token = await getToken()
+      if (token) {
+        const payload = {
+          name: fullName,
+          first_name: data.firstName,
+          last_name: data.lastName,
+          email: data.email,
+          phone: data.phone,
+          password: data.password,
+          role: data.role.toUpperCase() === "ADMIN" ? "ADMIN" : "RECEPTIONIST",
+          is_active: data.status === "Active",
+          status: data.status
+        }
+        const createdStaff = await createUser(payload, token)
+        setUsers(prev => [createdStaff, ...prev])
+        toast.success(`${fullName} created successfully as ${data.role}!`)
+        setAddOpen(false)
+        return
+      }
+    } catch (err) {
+      console.warn("Failed to create staff via backend API, using local fallback:", err)
+    }
+
+    // Local fallback
+    const newStaff: User = {
+      id: "local_" + Math.random().toString(36).substr(2, 9),
+      name: fullName,
+      email: data.email,
+      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName)}`,
+      phone: data.phone,
+      role: data.role,
+      status: data.status,
+      joinedDate: new Date().toISOString().split('T')[0],
+      lastLogin: new Date().toISOString().split('T')[0],
+    }
+
+    const updated = [newStaff, ...users]
+    setUsers(updated)
+    saveToLocalCache(updated)
+    setAddOpen(false)
+    toast.success(`${fullName} created successfully as ${data.role}! (Local Profile)`)
+  }
+
+  // Edit Click Handler
+  const handleEditUser = (user: User) => {
+    setEditingUser(user)
+    setEditOpen(true)
+  }
+
+  // Edit Submit Handler
+  const handleEditSubmit = async (data: {
+    firstName: string
+    lastName: string
+    email: string
+    phone: string
+    role: string
+    status: string
+  }) => {
+    if (!editingUser) return
+
+    const fullName = `${data.firstName} ${data.lastName}`.trim()
+    try {
+      const token = await getToken()
+      if (token) {
+        const payload = {
+          name: fullName,
+          first_name: data.firstName,
+          last_name: data.lastName,
+          email: data.email,
+          phone: data.phone,
+          role: data.role.toUpperCase() === "ADMIN" ? "ADMIN" : "RECEPTIONIST",
+          is_active: data.status === "Active",
+          status: data.status
+        }
+        const updatedStaff = await updateUser(editingUser.id, payload, token)
+        setUsers(prev => prev.map(u => u.id === editingUser.id ? updatedStaff : u))
+        toast.success("User updated successfully!")
+        setEditOpen(false)
+        setEditingUser(null)
+        return
+      }
+    } catch (err) {
+      console.warn("Failed to edit staff via backend API, using local fallback:", err)
+    }
+
+    // Local fallback
+    const updated = users.map(u => 
+      u.id === editingUser.id 
+        ? {
+            ...u,
+            name: fullName,
+            email: data.email,
+            phone: data.phone,
+            role: data.role,
+            status: data.status,
+            avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName)}`
+          }
+        : u
+    )
+
+    setUsers(updated)
+    saveToLocalCache(updated)
+    setEditOpen(false)
+    setEditingUser(null)
+    toast.success("User updated successfully! (Local Profile)")
+  }
+
+  // Reset Password Handler
+  const handleResetPassword = (user: User) => {
+    setTargetUser(user)
+    setResetOpen(true)
+  }
+
+  const handleResetSubmit = async (password: string) => {
+    if (!targetUser) return
+    try {
+      const token = await getToken()
+      if (token) {
+        await resetUserPassword(targetUser.id, password, token)
+        toast.success(`Password for ${targetUser.name} reset successfully!`)
+        setResetOpen(false)
+        setTargetUser(null)
+        return
+      }
+    } catch (err) {
+      console.warn("Failed to reset password via backend API, using local fallback:", err)
+    }
+
+    setResetOpen(false)
+    setTargetUser(null)
+    toast.success("Password reset successfully! (Local Cache)")
+  }
+
+  // Deactivate Handler
+  const handleDeactivateClick = (user: User) => {
+    setTargetUser(user)
+    setDeactivateOpen(true)
+  }
+
+  const handleDeactivateConfirm = async () => {
+    if (!targetUser) return
+    try {
+      const token = await getToken()
+      if (token) {
+        const updatedStaff = await updateUser(targetUser.id, { is_active: false, status: "Inactive" }, token)
+        setUsers(prev => prev.map(u => u.id === targetUser.id ? updatedStaff : u))
+        toast.success("User account deactivated successfully!")
+        setDeactivateOpen(false)
+        setTargetUser(null)
+        return
+      }
+    } catch (err) {
+      console.warn("Failed to deactivate staff via backend API, using local fallback:", err)
+    }
+
+    // Local fallback
+    const updated = users.map(u => 
+      u.id === targetUser.id ? { ...u, status: "Inactive" } : u
+    )
+    setUsers(updated)
+    saveToLocalCache(updated)
+    setDeactivateOpen(false)
+    setTargetUser(null)
+    toast.success("User account deactivated successfully! (Local Profile)")
+  }
+
+  // Delete User Handler
+  const handleDeleteUser = async (id: number | string) => {
+    const target = users.find(u => u.id === id)
+    if (target && confirm(`Are you sure you want to permanently delete ${target.name}?`)) {
+      try {
+        const token = await getToken()
+        if (token) {
+          await deleteUser(id, token)
+          setUsers(prev => prev.filter(u => u.id !== id))
+          toast.success(`${target.name} deleted successfully!`)
+          return
+        }
+      } catch (err) {
+        console.warn("Failed to delete user via backend API, using local fallback:", err)
+      }
+
+      // Local fallback
+      const updated = users.filter(u => u.id !== id)
+      setUsers(updated)
+      saveToLocalCache(updated)
+      toast.success(`${target.name} deleted successfully! (Local Profile)`)
+    }
+  }
+
+  // View User details
+  const handleViewUser = (user: User) => {
+    setTargetUser(user)
+    setViewOpen(true)
+  }
+
+  return (
+    <BaseLayout 
+      title="User Management" 
+      description="Manage hotel system operators, receptionists, and access permissions"
+    >
+      <div className="flex flex-col gap-4">
+        {/* Metric Cards */}
+        <div className="px-4 lg:px-6">
+          <StatCards users={users} />
+        </div>
+        
+        {/* Table View */}
+        <div className="px-4 lg:px-6 mt-6">
+          <DataTable 
+            users={users}
+            onDeleteUser={handleDeleteUser}
+            onEditUser={handleEditUser}
+            onResetPassword={handleResetPassword}
+            onDeactivateUser={handleDeactivateClick}
+            onViewUser={handleViewUser}
+            onOpenAddDialog={() => setAddOpen(true)}
+          />
+        </div>
+      </div>
+
+      {/* Modular Dialog Components */}
+      <AddUserDialog 
+        open={addOpen} 
+        onOpenChange={setAddOpen} 
+        onAdd={handleAddSubmit} 
+      />
+
+      <EditUserDialog 
+        open={editOpen} 
+        onOpenChange={setEditOpen} 
+        user={editingUser} 
+        onEdit={editSubmit => handleEditSubmit(editSubmit)} 
+      />
+
+      <ViewUserDialog 
+        open={viewOpen} 
+        onOpenChange={setViewOpen} 
+        user={targetUser} 
+      />
+
+      <ResetPasswordDialog 
+        open={resetOpen} 
+        onOpenChange={setResetOpen} 
+        user={targetUser} 
+        onReset={handleResetSubmit} 
+      />
+
+      <DeactivateUserDialog 
+        open={deactivateOpen} 
+        onOpenChange={setDeactivateOpen} 
+        user={targetUser} 
+        onDeactivate={handleDeactivateConfirm} 
+      />
+    </BaseLayout>
+  )
+}

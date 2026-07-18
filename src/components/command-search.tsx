@@ -5,25 +5,21 @@ import { useNavigate } from "react-router-dom"
 import { Command as CommandPrimitive } from "cmdk"
 import {
   Search,
-  LayoutPanelLeft,
   LayoutDashboard,
-  Mail,
-  CheckSquare,
-  MessageCircle,
-  Calendar,
-  Shield,
-  AlertTriangle,
+  ClipboardList,
+  CalendarDays,
+  Bed,
+  Contact,
+  Users,
+  BarChart3,
   Settings,
-  HelpCircle,
-  CreditCard,
   User,
-  Bell,
-  Link2,
-  Palette,
   Moon,
   Sun,
   Laptop,
   LogOut,
+  Sliders,
+  Key,
   type LucideIcon,
 } from "lucide-react"
 
@@ -32,8 +28,6 @@ import { cn } from "@/lib/utils"
 import { useTheme } from "@/hooks/use-theme"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
-import { useAppStore } from "@/store/use-app-store"
-import { mails } from "@/app/mail/data"
 
 const Command = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive>,
@@ -136,72 +130,42 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
   const navigate = useNavigate()
   const { setTheme } = useTheme()
   const { logout, isAuthenticated } = useAuth()
-  const tasks = useAppStore((state) => state.tasks)
   const commandRef = React.useRef<HTMLDivElement>(null)
 
   const searchItems: SearchItem[] = [
-    // Dashboards
-    { title: "Dashboard 1", url: "/dashboard", group: "Dashboards", icon: LayoutDashboard },
-    { title: "Dashboard 2", url: "/dashboard-2", group: "Dashboards", icon: LayoutPanelLeft },
-
-    // Apps
-    { title: "Mail", url: "/mail", group: "Apps", icon: Mail },
-    { title: "Tasks", url: "/tasks", group: "Apps", icon: CheckSquare },
-    { title: "Chat", url: "/chat", group: "Apps", icon: MessageCircle },
-    { title: "Calendar", url: "/calendar", group: "Apps", icon: Calendar },
-
-    // Auth Pages
-    { title: "Sign In", url: "/auth/sign-in", group: "Auth Pages", icon: Shield },
-    { title: "Sign Up", url: "/auth/sign-up", group: "Auth Pages", icon: Shield },
-    { title: "Forgot Password 1", url: "/auth/forgot-password", group: "Auth Pages", icon: Shield },
-    { title: "Forgot Password 2", url: "/auth/forgot-password-2", group: "Auth Pages", icon: Shield },
-
-    // Errors
-    { title: "Unauthorized", url: "/errors/unauthorized", group: "Errors", icon: AlertTriangle },
-    { title: "Forbidden", url: "/errors/forbidden", group: "Errors", icon: AlertTriangle },
-    { title: "Not Found", url: "/errors/not-found", group: "Errors", icon: AlertTriangle },
-    { title: "Internal Server Error", url: "/errors/internal-server-error", group: "Errors", icon: AlertTriangle },
-    { title: "Under Maintenance", url: "/errors/under-maintenance", group: "Errors", icon: AlertTriangle },
+    // Hotel Modules
+    { title: "Dashboard", url: "/admin/dashboard", group: "Hotel", icon: LayoutDashboard },
+    { title: "Bookings", url: "/admin/bookings", group: "Hotel", icon: ClipboardList },
+    { title: "Booking Calendar", url: "/admin/calendar", group: "Hotel", icon: CalendarDays },
+    { title: "Rooms", url: "/admin/rooms", group: "Hotel", icon: Bed },
+    { title: "Guests", url: "/admin/guests", group: "Hotel", icon: Contact },
+    { title: "Staff", url: "/admin/users", group: "Hotel", icon: Users },
+    { title: "Reports", url: "/admin/reports", group: "Hotel", icon: BarChart3 },
 
     // Settings
-    { title: "User Settings", url: "/settings/user", group: "Settings", icon: User },
-    { title: "Account Settings", url: "/settings/account", group: "Settings", icon: Settings },
-    { title: "Plans & Billing", url: "/settings/billing", group: "Settings", icon: CreditCard },
-    { title: "Appearance", url: "/settings/appearance", group: "Settings", icon: Palette },
-    { title: "Notifications", url: "/settings/notifications", group: "Settings", icon: Bell },
-    { title: "Connections", url: "/settings/connections", group: "Settings", icon: Link2 },
+    { title: "Hotel Information", url: "/admin/settings/hotel", group: "Settings", icon: Settings },
+    { title: "User Profile", url: "/admin/settings/user", group: "Settings", icon: User },
+    { title: "Password Settings", url: "/admin/settings/password", group: "Settings", icon: Key },
+    { title: "System Preferences", url: "/admin/settings/preferences", group: "Settings", icon: Sliders },
 
-    // Pages
-    { title: "FAQs", url: "/faqs", group: "Pages", icon: HelpCircle },
-    { title: "Pricing", url: "/pricing", group: "Pages", icon: CreditCard },
-
-    // Quick Actions
+    // Theme Actions
     {
       title: "Set Theme to Dark",
-      action: () => {
-        setTheme("dark")
-        toast.success("Theme changed to Dark")
-      },
+      action: () => { setTheme("dark"); toast.success("Theme changed to Dark") },
       group: "Actions",
-      icon: Moon
+      icon: Moon,
     },
     {
       title: "Set Theme to Light",
-      action: () => {
-        setTheme("light")
-        toast.success("Theme changed to Light")
-      },
+      action: () => { setTheme("light"); toast.success("Theme changed to Light") },
       group: "Actions",
-      icon: Sun
+      icon: Sun,
     },
     {
       title: "Set Theme to System",
-      action: () => {
-        setTheme("system")
-        toast.success("Theme changed to System Preference")
-      },
+      action: () => { setTheme("system"); toast.success("Theme changed to System Preference") },
       group: "Actions",
-      icon: Laptop
+      icon: Laptop,
     },
   ]
 
@@ -215,31 +179,12 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
         navigate("/auth/sign-in")
       },
       group: "Actions",
-      icon: LogOut
+      icon: LogOut,
     })
   }
 
-  // Dynamic resource indexing
-  const indexedTasks: SearchItem[] = tasks.map((t) => ({
-    title: `Task: ${t.title} [${t.id}]`,
-    url: "/tasks",
-    group: "Search Results (Tasks)",
-    icon: CheckSquare,
-  }))
-
-  const indexedMails: SearchItem[] = mails.slice(0, 5).map((m) => ({
-    title: `Mail: ${m.subject} (from ${m.name})`,
-    url: "/mail",
-    group: "Search Results (Mails)",
-    icon: Mail,
-  }))
-
-  const allSearchItems = [...searchItems, ...indexedTasks, ...indexedMails]
-
-  const groupedItems = allSearchItems.reduce((acc, item) => {
-    if (!acc[item.group]) {
-      acc[item.group] = []
-    }
+  const groupedItems = searchItems.reduce((acc, item) => {
+    if (!acc[item.group]) acc[item.group] = []
     acc[item.group].push(item)
     return acc
   }, {} as Record<string, SearchItem[]>)

@@ -7,20 +7,15 @@ import { RouteProgress } from '@/components/route-progress'
 import { ProtectedRoute } from './protected-route'
 
 const PUBLIC_PATHS = [
-  "/landing",
   "/auth/sign-in",
   "/auth/sign-up",
   "/auth/forgot-password",
-  "/auth/forgot-password-2",
-  "/auth/forgot-password-3",
   "/sso-callback",
   "/errors/unauthorized",
   "/errors/forbidden",
   "/errors/not-found",
   "/errors/internal-server-error",
   "/errors/under-maintenance",
-  "/faqs",
-  "/pricing",
 ]
 
 function renderRoutes(routeConfigs: RouteConfig[]) {

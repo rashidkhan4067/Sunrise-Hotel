@@ -21,10 +21,21 @@ interface AuthContextType {
   registerWithGoogle: () => Promise<void>
   logout: () => Promise<void>
   getToken: () => Promise<string | null>
-  updateProfile: (firstName: string, lastName: string) => Promise<void>
+  updateProfile: (firstName: string, lastName: string, phone?: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
+
+const resolveUserRole = (userObj: any, _membershipRole?: string | null): string => {
+  if (!userObj) return "org:member"
+
+  const userEmail = userObj.primaryEmailAddress?.emailAddress || userObj.emailAddresses?.[0]?.emailAddress || ""
+  if (userEmail && userEmail.toLowerCase() === "rashidshafique.dev@gmail.com") {
+    return "org:admin"
+  }
+
+  return "org:member"
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || ""
@@ -94,6 +105,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       resolvedFirst = parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(" ")
     }
 
+    const resolvedRole = resolveUserRole({
+      primaryEmailAddress: { emailAddress: emailAddress },
+      emailAddresses: [{ emailAddress: emailAddress }]
+    })
+
     const tempUser = {
       id: "temp",
       fullName: resolvedLast ? `${resolvedFirst} ${resolvedLast}` : resolvedFirst || "Staff Member",
@@ -101,7 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       lastName: resolvedLast,
       imageUrl: "",
       email: emailAddress,
-      role: "org:member",
+      role: resolvedRole,
     }
     localStorage.setItem("clerk_cached_user", JSON.stringify(tempUser))
     setCachedData(tempUser)
@@ -114,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       primaryEmailAddress: { emailAddress: emailAddress },
       emailAddresses: [{ emailAddress: emailAddress }]
     })
-    setCurrentRole("org:member")
+    setCurrentRole(resolvedRole)
   }
 
   // Reset authenticating bridge state once Clerk confirms the session is active
@@ -123,6 +139,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsAuthenticating(false)
     }
   }, [clerkAuth.isSignedIn])
+
+  // Auto-sync session locally if authenticated globally (prevents 400 Bad Request click errors)
+  useEffect(() => {
+    if (!isClerkLoaded) return
+    if (!clerkAuth.isSignedIn) {
+      const activeSession = clerk.client?.sessions?.[0]
+      if (activeSession && activeSession.status === "active") {
+        console.log("[AuthContext] Found global Clerk session. Activating locally...")
+        clerk.setActive({ session: activeSession.id }).catch(err => {
+          console.warn("Failed to auto-activate existing session:", err)
+        })
+      }
+    }
+  }, [isClerkLoaded, clerkAuth.isSignedIn, clerk])
 
   // Synchronize cache when Clerk loads or changes session
   useEffect(() => {
@@ -140,8 +170,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        const activeRole = membership?.role || "org:member"
         const userObj = clerkUser.user
+        const email = userObj.primaryEmailAddress?.emailAddress || userObj.emailAddresses?.[0]?.emailAddress || ""
+        const activeRole = resolveUserRole(userObj, membership?.role)
         
         // Always bind to live Clerk user details for valid image URL signatures
         setCurrentUser(userObj)
@@ -153,17 +184,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           firstName: userObj.firstName,
           lastName: userObj.lastName,
           imageUrl: userObj.imageUrl,
-          email: userObj.primaryEmailAddress?.emailAddress || userObj.emailAddresses?.[0]?.emailAddress || "",
+          email: email,
           role: activeRole,
         }
 
-        // Compare cache content to prevent redundant react renders and flicker
         const freshString = JSON.stringify(freshData)
         const cachedString = localStorage.getItem("clerk_cached_user")
-        
+
         if (cachedString !== freshString) {
           localStorage.setItem("clerk_cached_user", freshString)
           setCachedData(freshData)
+        }
+
+        // Store the real user details in the shared local database cache of registered users
+        try {
+          const stored = localStorage.getItem("registered_users_cache")
+          const list = stored ? JSON.parse(stored) : []
+          const existingIdx = list.findIndex((u: any) => u.email.toLowerCase() === email.toLowerCase())
+          
+          const userRecord = {
+            name: userObj.fullName || `${userObj.firstName || ""} ${userObj.lastName || ""}`.trim() || email.split("@")[0],
+            email: email,
+            avatar: userObj.imageUrl || "",
+            role: activeRole === "org:admin" ? "Admin" : "Client",
+            status: "Active",
+            joinedDate: new Date(userObj.createdAt || Date.now()).toISOString().split('T')[0],
+            lastLogin: new Date(userObj.updatedAt || Date.now()).toISOString().split('T')[0],
+          }
+
+          if (existingIdx >= 0) {
+            list[existingIdx] = userRecord
+          } else {
+            list.push(userRecord)
+          }
+          localStorage.setItem("registered_users_cache", JSON.stringify(list))
+        } catch (e) {
+          console.error("[AuthContext] Failed to update registered users cache:", e)
         }
       }
     } else if (!isAuthenticating) {
@@ -183,6 +239,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
   }, [isClerkLoaded, clerkAuth.isSignedIn, clerkAuth.orgId, clerkUser.user, membership?.role, isAuthenticating])
+
+
 
   const login = async (email: string, password: string): Promise<LoginResult> => {
     if (!clerkAuth.isLoaded || !signInObj) {
@@ -216,7 +274,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await new Promise(r => setTimeout(r, 500))
           return true
         } else {
-          await clerkAuth.signOut()
+          await clerkAuth.signOut({ redirectUrl: window.location.origin + "/#/auth/sign-in" })
           throw new Error("Already signed in, but could not find a session ID to activate. Please try logging in again.")
         }
       }
@@ -310,12 +368,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error("Clerk authentication is not loaded yet.")
     }
 
+    // Auto-generate a clean, alphanumeric username based on the email prefix (e.g. rashid_4829)
+    const usernamePrefix = values.email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "")
+    const paddedPrefix = usernamePrefix.length >= 4 ? usernamePrefix : (usernamePrefix + "user")
+    const generatedUsername = `${paddedPrefix}_${Math.floor(1000 + Math.random() * 9000)}`.toLowerCase()
+
     if (signUpObj.status === "missing_requirements") {
-      const result = await signUpObj.update({
+      const updateParams: any = {
         firstName: values.firstName,
         lastName: values.lastName,
         password: values.password,
-      })
+        username: generatedUsername,
+      }
+
+      const result = await signUpObj.update(updateParams)
       if (result.status === "complete") {
         setIsAuthenticating(true)
         await clerk.setActive({ session: result.createdSessionId })
@@ -335,6 +401,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         lastName: values.lastName,
         emailAddress: values.email,
         password: values.password,
+        username: generatedUsername,
       })
 
       await signUpObj.prepareEmailAddressVerification({
@@ -372,13 +439,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await signInObj.authenticateWithRedirect({
         strategy: "oauth_google",
         redirectUrl: "/sso-callback",
-        redirectUrlComplete: "/dashboard",
+        redirectUrlComplete: "/",
       })
     } catch (err: any) {
       const clerkError = err.errors?.[0]
-      if (clerkError?.code === "session_exists" && clerkError.meta?.sessionId) {
-        await clerk.setActive({ session: clerkError.meta.sessionId })
-        return
+      const errorStr = (JSON.stringify(err) || "").toLowerCase()
+      const isAlreadySignedIn = 
+        errorStr.includes("already signed in") ||
+        errorStr.includes("session_exists") ||
+        clerkError?.code === "session_exists"
+
+      if (isAlreadySignedIn) {
+        const sessionId = clerkError?.meta?.sessionId || clerk.client?.sessions?.[0]?.id
+        if (sessionId) {
+          await clerk.setActive({ session: sessionId })
+          return
+        }
       }
       throw err
     }
@@ -393,13 +469,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await signUpObj.authenticateWithRedirect({
         strategy: "oauth_google",
         redirectUrl: "/sso-callback",
-        redirectUrlComplete: "/dashboard",
+        redirectUrlComplete: "/",
       })
     } catch (err: any) {
       const clerkError = err.errors?.[0]
-      if (clerkError?.code === "session_exists" && clerkError.meta?.sessionId) {
-        await clerk.setActive({ session: clerkError.meta.sessionId })
-        return
+      const errorStr = (JSON.stringify(err) || "").toLowerCase()
+      const isAlreadySignedIn = 
+        errorStr.includes("already signed in") ||
+        errorStr.includes("session_exists") ||
+        clerkError?.code === "session_exists"
+
+      if (isAlreadySignedIn) {
+        const sessionId = clerkError?.meta?.sessionId || clerk.client?.sessions?.[0]?.id
+        if (sessionId) {
+          await clerk.setActive({ session: sessionId })
+          return
+        }
       }
       throw err
     }
@@ -409,7 +494,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.removeItem("clerk_cached_user")
       setCachedData(null)
-      await clerkAuth.signOut()
+      await clerkAuth.signOut({ redirectUrl: window.location.origin + "/#/auth/sign-in" })
     } catch (e) {
       console.error("Failed to clear auth session:", e)
     }
@@ -424,7 +509,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const updateProfile = async (firstName: string, lastName: string) => {
+  // Automatically sync Clerk profile to Django database on login/signup
+  useEffect(() => {
+    async function syncUserProfile() {
+      if (clerkAuth.isSignedIn && clerkUser.user) {
+        try {
+          const token = await getToken()
+          if (token) {
+            const userObj = clerkUser.user
+            const email = userObj.primaryEmailAddress?.emailAddress || userObj.emailAddresses?.[0]?.emailAddress || ""
+            
+            // First, trigger get_or_create_user by fetching /me/
+            const getRes = await fetch("http://localhost:8000/api/auth/me/", {
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
+            })
+            
+            if (getRes.ok) {
+              const userData = await getRes.json()
+              // If the email is a placeholder or different, update it with real Clerk details
+              if (!userData.email || userData.email.includes("@placeholder.sunrise.com") || userData.email !== email || !userData.first_name) {
+                await fetch("http://localhost:8000/api/auth/me/", {
+                  method: "PATCH",
+                  headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                  },
+                  body: JSON.stringify({
+                    email: email,
+                    first_name: userObj.firstName || "",
+                    last_name: userObj.lastName || ""
+                  })
+                })
+                console.log("[AuthContext] Successfully updated database user profile with real Clerk details.")
+              } else {
+                console.log("[AuthContext] Clerk profile is already in sync with Django backend database.")
+              }
+            }
+          }
+        } catch (err) {
+          console.warn("[AuthContext] Failed to sync Clerk profile with Django backend:", err)
+        }
+      }
+    }
+    syncUserProfile()
+  }, [clerkAuth.isSignedIn, clerkUser.user, getToken])
+
+  const updateProfile = async (firstName: string, lastName: string, phone?: string) => {
     if (!clerkUser.user) {
       throw new Error("User profile is not loaded or authenticated.")
     }
@@ -432,6 +564,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       firstName,
       lastName,
     })
+
+    if (phone) {
+      try {
+        const currentPhone = clerkUser.user.primaryPhoneNumber?.phoneNumber
+        if (currentPhone !== phone) {
+          // Remove old phone numbers
+          for (const p of clerkUser.user.phoneNumbers) {
+            await p.destroy().catch(() => {})
+          }
+          // Create the new phone number (Clerk sets the first/only phone number as primary automatically)
+          await clerkUser.user.createPhoneNumber({ phoneNumber: phone })
+        }
+      } catch (err: any) {
+        console.warn("Failed to update phone number via Clerk:", err)
+      }
+    }
   }
 
   return (

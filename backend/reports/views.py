@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from django.db.models import Sum, Count
 from django.db.models.functions import TruncDate
 from rest_framework import permissions, status
@@ -17,10 +17,10 @@ class DashboardKPIView(APIView):
     def get(self, request, *args, **kwargs):
         today = date.today()
         
-        total_rooms = Room.objects.count()
-        available_rooms = Room.objects.filter(status='AVAILABLE').count()
-        occupied_rooms = Room.objects.filter(status='OCCUPIED').count()
-        maintenance_rooms = Room.objects.filter(status='MAINTENANCE').count()
+        total_rooms = Room.objects.filter(is_archived=False).count()
+        available_rooms = Room.objects.filter(status='AVAILABLE', is_archived=False).count()
+        occupied_rooms = Room.objects.filter(status='OCCUPIED', is_archived=False).count()
+        maintenance_rooms = Room.objects.filter(status='MAINTENANCE', is_archived=False).count()
         
         today_bookings = Booking.objects.filter(check_in=today).count()
         today_check_ins = Booking.objects.filter(check_in=today, status='CHECKED_IN').count()
@@ -98,3 +98,335 @@ class AnalyticsTrendsView(APIView):
             })
             
         return Response(chart_data, status=status.HTTP_200_OK)
+
+
+class ReportsDataView(APIView):
+    """API endpoint to query hotel reports with custom groupings, filtering, and summary metrics."""
+    permission_classes = [permissions.IsAuthenticated, IsHotelStaff]
+
+    def get(self, request, *args, **kwargs):
+        report_type = request.query_params.get('report_type', 'daily').lower()
+        date_range = request.query_params.get('date_range', 'this_month').lower()
+        status_param = request.query_params.get('status', 'all').upper()
+        room_type_param = request.query_params.get('room_type', 'all').upper()
+        
+        # Determine start/end dates
+        today = date.today()
+        if date_range == 'today':
+            start_date = today
+            end_date = today
+        elif date_range == 'this_week':
+            start_date = today - timedelta(days=today.weekday())
+            end_date = start_date + timedelta(days=6)
+        elif date_range == 'this_month':
+            start_date = date(today.year, today.month, 1)
+            if today.month == 12:
+                end_date = date(today.year, 12, 31)
+            else:
+                end_date = date(today.year, today.month + 1, 1) - timedelta(days=1)
+        elif date_range == 'this_year':
+            start_date = date(today.year, 1, 1)
+            end_date = date(today.year, 12, 31)
+        elif date_range == 'custom':
+            start_str = request.query_params.get('start_date')
+            end_str = request.query_params.get('end_date')
+            try:
+                start_date = datetime.strptime(start_str, '%Y-%m-%d').date() if start_str else today - timedelta(days=30)
+                end_date = datetime.strptime(end_str, '%Y-%m-%d').date() if end_str else today
+            except ValueError:
+                return Response({'error': 'Invalid date format. Use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            # Default fallback
+            start_date = today - timedelta(days=30)
+            end_date = today
+
+        # Fetch base room count
+        total_rooms = Room.objects.filter(is_archived=False).count() or 1
+
+        # Query all bookings that overlap with the date range
+        bookings = Booking.objects.filter(check_in__lte=end_date, check_out__gte=start_date)
+        
+        if status_param != 'ALL':
+            bookings = bookings.filter(status=status_param)
+            
+        if room_type_param != 'ALL':
+            bookings = bookings.filter(room__room_type=room_type_param)
+
+        # Generate list of days
+        delta = end_date - start_date
+        num_days = delta.days + 1
+        
+        daily_data = []
+        for i in range(num_days):
+            curr_date = start_date + timedelta(days=i)
+            
+            day_bookings = [b for b in bookings if b.check_in == curr_date]
+            
+            revenue = sum(float(b.total_price) for b in day_bookings if b.status in ['CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT'])
+            check_ins = len([b for b in day_bookings if b.status in ['CHECKED_IN', 'CHECKED_OUT']])
+            check_outs = len([b for b in bookings if b.check_out == curr_date and b.status == 'CHECKED_OUT'])
+            
+            # Daily active occupied count (stay spans over curr_date)
+            occupied_count = len([
+                b for b in bookings 
+                if b.check_in <= curr_date < b.check_out 
+                and b.status in ['CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT']
+            ])
+            
+            avg_stay = 0.0
+            if day_bookings:
+                stay_nights = [max(1, (b.check_out - b.check_in).days) for b in day_bookings]
+                avg_stay = sum(stay_nights) / len(day_bookings)
+                
+            occupancy_pct = min(100.0, round((occupied_count / total_rooms) * 100.0, 1))
+
+            daily_data.append({
+                'date': curr_date,
+                'bookings': len(day_bookings),
+                'revenue': revenue,
+                'check_ins': check_ins,
+                'check_outs': check_outs,
+                'occupancy_pct': occupancy_pct,
+                'avg_stay': avg_stay
+            })
+
+        # Now group and format
+        final_rows = []
+        
+        if report_type == 'weekly':
+            weekly_groups = {}
+            for item in daily_data:
+                d = item['date']
+                week_start = d - timedelta(days=d.weekday()) # Monday week-start
+                week_str = week_start.strftime('%Y-%m-%d')
+                if week_str not in weekly_groups:
+                    weekly_groups[week_str] = []
+                weekly_groups[week_str].append(item)
+                
+            for week_str, items in weekly_groups.items():
+                w_date = datetime.strptime(week_str, '%Y-%m-%d').date()
+                label = f"Week of {w_date.strftime('%b %d, %Y')}"
+                
+                final_rows.append({
+                    'date': label,
+                    'bookings': sum(x['bookings'] for x in items),
+                    'revenue': round(sum(x['revenue'] for x in items), 2),
+                    'checkIns': sum(x['check_ins'] for x in items),
+                    'checkOuts': sum(x['check_outs'] for x in items),
+                    'occupancyPct': round(sum(x['occupancy_pct'] for x in items) / len(items), 1),
+                    'avgStay': round(sum(x['avg_stay'] for x in items) / len(items), 1)
+                })
+        elif report_type == 'monthly':
+            monthly_groups = {}
+            for item in daily_data:
+                key = item['date'].strftime('%Y-%m')
+                if key not in monthly_groups:
+                    monthly_groups[key] = []
+                monthly_groups[key].append(item)
+                
+            for month_str, items in monthly_groups.items():
+                m_date = datetime.strptime(month_str, '%Y-%m').date()
+                label = m_date.strftime('%B %Y')
+                
+                final_rows.append({
+                    'date': label,
+                    'bookings': sum(x['bookings'] for x in items),
+                    'revenue': round(sum(x['revenue'] for x in items), 2),
+                    'checkIns': sum(x['check_ins'] for x in items),
+                    'checkOuts': sum(x['check_outs'] for x in items),
+                    'occupancyPct': round(sum(x['occupancy_pct'] for x in items) / len(items), 1),
+                    'avgStay': round(sum(x['avg_stay'] for x in items) / len(items), 1)
+                })
+        elif report_type == 'yearly':
+            yearly_groups = {}
+            for item in daily_data:
+                key = item['date'].strftime('%Y')
+                if key not in yearly_groups:
+                    yearly_groups[key] = []
+                yearly_groups[key].append(item)
+                
+            for year_str, items in yearly_groups.items():
+                final_rows.append({
+                    'date': year_str,
+                    'bookings': sum(x['bookings'] for x in items),
+                    'revenue': round(sum(x['revenue'] for x in items), 2),
+                    'checkIns': sum(x['check_ins'] for x in items),
+                    'checkOuts': sum(x['check_outs'] for x in items),
+                    'occupancyPct': round(sum(x['occupancy_pct'] for x in items) / len(items), 1),
+                    'avgStay': round(sum(x['avg_stay'] for x in items) / len(items), 1)
+                })
+        else:
+            # daily, revenue, occupancy, booking
+            for item in daily_data:
+                final_rows.append({
+                    'date': item['date'].strftime('%b %d, %Y'),
+                    'bookings': item['bookings'],
+                    'revenue': round(item['revenue'], 2),
+                    'checkIns': item['check_ins'],
+                    'checkOuts': item['check_outs'],
+                    'occupancyPct': item['occupancy_pct'],
+                    'avgStay': round(item['avg_stay'], 1)
+                })
+
+        # Calculate overall Summary
+        total_bookings = sum(x['bookings'] for x in daily_data)
+        total_revenue = sum(x['revenue'] for x in daily_data)
+        avg_occupancy = round(sum(x['occupancy_pct'] for x in daily_data) / len(daily_data), 1) if daily_data else 0.0
+        active_guests = Guest.objects.filter(bookings__check_in__gte=start_date, bookings__check_in__lte=end_date).distinct().count()
+
+        return Response({
+            'summary': {
+                'totalBookings': total_bookings,
+                'totalRevenue': round(total_revenue, 2),
+                'occupancyRate': avg_occupancy,
+                'activeGuests': active_guests
+            },
+            'rows': final_rows
+        }, status=status.HTTP_200_OK)
+
+
+class DashboardDataView(APIView):
+    """API endpoint to get real-time operational dashboard data for hotel management."""
+    permission_classes = [permissions.IsAuthenticated, IsHotelStaff]
+
+    def get(self, request, *args, **kwargs):
+        today = date.today()
+        
+        # 1. Summary Metrics
+        total_rooms = Room.objects.filter(is_archived=False).count()
+        occupied_rooms = Room.objects.filter(status='OCCUPIED', is_archived=False).count()
+        available_rooms = Room.objects.filter(status='AVAILABLE', is_archived=False).count()
+        cleaning_rooms = Room.objects.filter(status='CLEANING', is_archived=False).count()
+        maintenance_rooms = Room.objects.filter(status='MAINTENANCE', is_archived=False).count()
+        
+        today_check_ins_qs = Booking.objects.filter(check_in=today)
+        today_check_outs_qs = Booking.objects.filter(check_out=today)
+        active_bookings_count = Booking.objects.filter(status__in=['CONFIRMED', 'CHECKED_IN']).count()
+
+        # 2. Today's Check-ins list
+        today_check_ins = []
+        for b in today_check_ins_qs:
+            today_check_ins.append({
+                'guestName': b.guest.full_name,
+                'roomNumber': b.room.room_number,
+                'status': b.status
+            })
+
+        # 3. Today's Check-outs list
+        today_check_outs = []
+        for b in today_check_outs_qs:
+            today_check_outs.append({
+                'guestName': b.guest.full_name,
+                'roomNumber': b.room.room_number,
+                'status': b.status
+            })
+
+        # 4. Recent Bookings (Limit 5)
+        recent_bookings_qs = Booking.objects.all().order_by('-created_at')[:5]
+        recent_bookings = []
+        for b in recent_bookings_qs:
+            recent_bookings.append({
+                'bookingId': str(b.booking_id)[:8],
+                'guestName': b.guest.full_name,
+                'roomNumber': b.room.room_number,
+                'checkIn': b.check_in.strftime('%b %d, %Y'),
+                'checkOut': b.check_out.strftime('%b %d, %Y'),
+                'status': b.status
+            })
+
+        # 5. Upcoming Arrivals (Limit 5)
+        tomorrow = today + timedelta(days=1)
+        upcoming_arrivals_qs = Booking.objects.filter(check_in__gte=tomorrow).order_by('check_in')[:5]
+        upcoming_arrivals = []
+        for b in upcoming_arrivals_qs:
+            nights = max(1, (b.check_out - b.check_in).days)
+            upcoming_arrivals.append({
+                'guestName': b.guest.full_name,
+                'roomNumber': b.room.room_number,
+                'arrivalDate': b.check_in.strftime('%b %d, %Y'),
+                'nights': nights
+            })
+
+        # 6. Dynamic Recent Activity (Limit 10)
+        # Pull latest updated bookings and rooms to construct activities
+        recent_activity = []
+        
+        # Latest bookings activities
+        recent_bk_activities = Booking.objects.all().order_by('-updated_at')[:8]
+        for b in recent_bk_activities:
+            act_type = 'created'
+            msg = f"Booking created for {b.guest.full_name} in Room {b.room.room_number}"
+            if b.status == 'CHECKED_IN':
+                act_type = 'check_in'
+                msg = f"Guest {b.guest.full_name} checked in to Room {b.room.room_number}"
+            elif b.status == 'CHECKED_OUT':
+                act_type = 'check_out'
+                msg = f"Guest {b.guest.full_name} checked out of Room {b.room.room_number}"
+            elif b.status == 'CANCELLED':
+                act_type = 'cancelled'
+                msg = f"Booking cancelled for {b.guest.full_name} in Room {b.room.room_number}"
+            elif b.status == 'CONFIRMED':
+                act_type = 'confirmed'
+                msg = f"Booking confirmed for {b.guest.full_name} in Room {b.room.room_number}"
+
+            recent_activity.append({
+                'type': act_type,
+                'message': msg,
+                'timestamp': b.updated_at
+            })
+
+        # Latest room status updates
+        recent_room_updates = Room.objects.filter(is_archived=False).order_by('-updated_at')[:5]
+        for r in recent_room_updates:
+            recent_activity.append({
+                'type': 'room_status',
+                'message': f"Room {r.room_number} status updated to {r.status}",
+                'timestamp': r.updated_at
+            })
+
+        # Sort combined activity list by timestamp descending
+        recent_activity = sorted(recent_activity, key=lambda x: x['timestamp'], reverse=True)[:10]
+        for act in recent_activity:
+            # format datetime to readable string
+            act['timestamp'] = act['timestamp'].strftime('%b %d, %Y %I:%M %p')
+
+        # 7. Monthly Occupancy Trend (last 6 months)
+        occupancy_trend = []
+        for i in range(5, -1, -1):
+            check_date = today - timedelta(days=i*30)
+            month_label = check_date.strftime('%b')
+            
+            # Simple simulation based on actual bookings of that month
+            m_start = date(check_date.year, check_date.month, 1)
+            if check_date.month == 12:
+                m_end = date(check_date.year, 12, 31)
+            else:
+                m_end = date(check_date.year, check_date.month + 1, 1) - timedelta(days=1)
+                
+            m_bookings = Booking.objects.filter(check_in__lte=m_end, check_out__gte=m_start, status__in=['CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT'])
+            m_occ_count = m_bookings.values('room').distinct().count()
+            
+            m_rate = min(100.0, round((m_occ_count / (total_rooms or 1)) * 100.0, 1))
+            occupancy_trend.append({
+                'month': month_label,
+                'occupancy': m_rate
+            })
+
+        return Response({
+            'summary': {
+                'totalRooms': total_rooms,
+                'occupiedRooms': occupied_rooms,
+                'availableRooms': available_rooms,
+                'cleaningRooms': cleaning_rooms,
+                'maintenanceRooms': maintenance_rooms,
+                'todayCheckInsCount': today_check_ins_qs.count(),
+                'todayCheckOutsCount': today_check_outs_qs.count(),
+                'activeBookingsCount': active_bookings_count
+            },
+            'todayCheckIns': today_check_ins,
+            'todayCheckOuts': today_check_outs,
+            'recentBookings': recent_bookings,
+            'upcomingArrivals': upcoming_arrivals,
+            'recentActivity': recent_activity,
+            'occupancyTrend': occupancy_trend
+        }, status=status.HTTP_200_OK)

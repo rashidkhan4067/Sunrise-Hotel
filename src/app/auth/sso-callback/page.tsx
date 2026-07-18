@@ -7,12 +7,14 @@ export default function SSOCallbackPage() {
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         <p className="text-muted-foreground text-sm">Completing authentication...</p>
         <AuthenticateWithRedirectCallback 
-          signInForceRedirectUrl="/dashboard"
-          signUpForceRedirectUrl="/dashboard"
-          signInFallbackRedirectUrl="/dashboard"
-          signUpFallbackRedirectUrl="/dashboard"
+          signInForceRedirectUrl="/"
+          signUpForceRedirectUrl="/"
+          signInFallbackRedirectUrl="/"
+          signUpFallbackRedirectUrl="/"
           continueSignUpUrl="/auth/sign-up"
         />
+        {/* Mount container for Clerk's Bot Sign Up Protection (Turnstile CAPTCHA) */}
+        <div id="clerk-captcha" className="mt-2" />
       </div>
     </div>
   )

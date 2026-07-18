@@ -10,11 +10,35 @@ from accounts.permissions import IsHotelStaff
 
 class BookingViewSet(viewsets.ModelViewSet):
     """ViewSet for managing hotel room bookings."""
-    queryset = Booking.objects.all()
     serializer_class = BookingSerializer
     permission_classes = [permissions.IsAuthenticated, IsHotelStaff]
-    filterset_fields = ['status', 'room', 'guest', 'check_in', 'check_out']
-    search_fields = ['guest__full_name', 'room__room_number', 'booking_id']
+
+    def get_queryset(self):
+        queryset = Booking.objects.all()
+        search = self.request.query_params.get('search')
+        if search:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(booking_id__icontains=search) |
+                Q(guest__full_name__icontains=search) |
+                Q(room__room_number__icontains=search)
+            )
+        status = self.request.query_params.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+        room = self.request.query_params.get('room')
+        if room:
+            queryset = queryset.filter(room_id=room)
+        guest = self.request.query_params.get('guest')
+        if guest:
+            queryset = queryset.filter(guest_id=guest)
+        check_in = self.request.query_params.get('check_in')
+        if check_in:
+            queryset = queryset.filter(check_in=check_in)
+        check_out = self.request.query_params.get('check_out')
+        if check_out:
+            queryset = queryset.filter(check_out=check_out)
+        return queryset
 
     @action(detail=True, methods=['POST'], url_path='check-in')
     @transaction.atomic

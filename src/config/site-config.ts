@@ -1,29 +1,22 @@
 import {
-  LayoutPanelLeft,
   LayoutDashboard,
-  Mail,
-  CheckSquare,
-  MessageCircle,
-  Calendar,
-  Shield,
-  AlertTriangle,
-  Settings,
-  HelpCircle,
-  CreditCard,
-  LayoutTemplate,
+  ClipboardList,
+  CalendarDays,
+  Bed,
+  Contact,
   Users,
+  BarChart3,
+  Settings,
   type LucideIcon,
 } from "lucide-react"
+
+// ─── Types ─────────────────────────────────────────────────────
 
 export interface NavItem {
   title: string
   url: string
   icon?: LucideIcon
   target?: string
-  items?: {
-    title: string
-    url: string
-  }[]
 }
 
 export interface NavGroup {
@@ -31,12 +24,22 @@ export interface NavGroup {
   items: NavItem[]
 }
 
+// ─── Brand Configuration ────────────────────────────────────────
+
 export const BRAND_CONFIG = {
-  name: "Admin Portal",
-  subName: "Admin Dashboard",
-  logoSize: 24,
-  landingPageUrl: "/landing",
+  admin: {
+    name: "SunRise Hotel",
+    subName: "Management Console",
+    logoSize: 24,
+  },
+  client: {
+    name: "SunRise Hotel",
+    subName: "Guest Portal",
+    logoSize: 24,
+  },
 }
+
+// ─── User Profile ───────────────────────────────────────────────
 
 export interface UserProfile {
   name: string
@@ -50,6 +53,8 @@ export const DEFAULT_USER: UserProfile = {
   avatar: "",
 }
 
+// ─── Storage Keys ───────────────────────────────────────────────
+
 export const STORAGE_KEYS = {
   theme: "vite-ui-theme",
   sidebarConfig: "sidebar-ui-config",
@@ -57,105 +62,116 @@ export const STORAGE_KEYS = {
   themeCustomizer: "theme-customizer-config",
 }
 
-export const navGroups: NavGroup[] = [
+// ─── Admin Navigation (Full Access) ────────────────────────────
+//
+// Admin sees all hotel modules plus system management.
+// Flat structure — no nested menus for MVP.
+
+export const adminNavGroups: NavGroup[] = [
   {
-    label: "Dashboards",
+    label: "Hotel",
     items: [
       {
-        title: "Dashboard 1",
-        url: "/dashboard",
+        title: "Dashboard",
+        url: "/admin/dashboard",
         icon: LayoutDashboard,
       },
       {
-        title: "Dashboard 2",
-        url: "/dashboard-2",
-        icon: LayoutPanelLeft,
-      },
-    ],
-  },
-  {
-    label: "Apps",
-    items: [
-      {
-        title: "Mail",
-        url: "/mail",
-        icon: Mail,
+        title: "Bookings",
+        url: "/admin/bookings",
+        icon: ClipboardList,
       },
       {
-        title: "Tasks",
-        url: "/tasks",
-        icon: CheckSquare,
+        title: "Booking Calendar",
+        url: "/admin/calendar",
+        icon: CalendarDays,
       },
       {
-        title: "Chat",
-        url: "/chat",
-        icon: MessageCircle,
+        title: "Rooms",
+        url: "/admin/rooms",
+        icon: Bed,
       },
       {
-        title: "Calendar",
-        url: "/calendar",
-        icon: Calendar,
+        title: "Guests",
+        url: "/admin/guests",
+        icon: Contact,
       },
       {
-        title: "Users",
-        url: "/users",
+        title: "Staff",
+        url: "/admin/users",
         icon: Users,
       },
     ],
   },
   {
-    label: "Pages",
+    label: "System",
     items: [
       {
-        title: "Landing",
-        url: "/landing",
-        target: "_blank",
-        icon: LayoutTemplate,
-      },
-      {
-        title: "Auth Pages",
-        url: "#",
-        icon: Shield,
-        items: [
-          { title: "Sign In", url: "/auth/sign-in" },
-          { title: "Sign Up", url: "/auth/sign-up" },
-          { title: "Forgot Password", url: "/auth/forgot-password" },
-        ],
-      },
-      {
-        title: "Errors",
-        url: "#",
-        icon: AlertTriangle,
-        items: [
-          { title: "Unauthorized", url: "/errors/unauthorized" },
-          { title: "Forbidden", url: "/errors/forbidden" },
-          { title: "Not Found", url: "/errors/not-found" },
-          { title: "Internal Server Error", url: "/errors/internal-server-error" },
-          { title: "Under Maintenance", url: "/errors/under-maintenance" },
-        ],
+        title: "Reports",
+        url: "/admin/reports",
+        icon: BarChart3,
       },
       {
         title: "Settings",
-        url: "#",
+        url: "/admin/settings/hotel",
         icon: Settings,
-        items: [
-          { title: "User Settings", url: "/settings/user" },
-          { title: "Account Settings", url: "/settings/account" },
-          { title: "Plans & Billing", url: "/settings/billing" },
-          { title: "Appearance", url: "/settings/appearance" },
-          { title: "Notifications", url: "/settings/notifications" },
-          { title: "Connections", url: "/settings/connections" },
-        ],
+      },
+    ],
+  },
+]
+
+// ─── Receptionist Navigation (Restricted Access) ────────────────
+//
+// Receptionists can manage day-to-day operations:
+// check-ins, check-outs, room status, guest lookup.
+// They do NOT see Staff management, Reports, or Settings.
+
+export const receptionistNavGroups: NavGroup[] = [
+  {
+    label: "Hotel",
+    items: [
+      {
+        title: "Dashboard",
+        url: "/admin/dashboard",
+        icon: LayoutDashboard,
       },
       {
-        title: "FAQs",
-        url: "/faqs",
-        icon: HelpCircle,
+        title: "Bookings",
+        url: "/admin/bookings",
+        icon: ClipboardList,
       },
       {
-        title: "Pricing",
-        url: "/pricing",
-        icon: CreditCard,
+        title: "Booking Calendar",
+        url: "/admin/calendar",
+        icon: CalendarDays,
+      },
+      {
+        title: "Rooms",
+        url: "/admin/rooms",
+        icon: Bed,
+      },
+      {
+        title: "Guests",
+        url: "/admin/guests",
+        icon: Contact,
+      },
+    ],
+  },
+]
+
+// ─── Client Navigation ──────────────────────────────────────────
+//
+// Guest portal — separate product, separate nav.
+// Do not reuse the admin sidebar for client users.
+
+export const clientNavGroups: NavGroup[] = [
+  {
+    label: "My Stay",
+    items: [
+      {
+        title: "Dashboard",
+        url: "/client/dashboard",
+        icon: LayoutDashboard,
       },
     ],
   },

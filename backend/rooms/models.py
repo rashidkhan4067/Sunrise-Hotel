@@ -5,15 +5,18 @@ class Room(models.Model):
     """Model representing a hotel room."""
     
     ROOM_TYPES = (
-        ('SINGLE', 'Single Room'),
-        ('DOUBLE', 'Double Room'),
+        ('SINGLE', 'Single'),
+        ('DOUBLE', 'Double'),
+        ('TWIN', 'Twin'),
+        ('DELUXE', 'Deluxe'),
         ('SUITE', 'Suite'),
-        ('DELUXE', 'Deluxe Room'),
+        ('FAMILY', 'Family'),
     )
     
     STATUS_CHOICES = (
         ('AVAILABLE', 'Available'),
         ('OCCUPIED', 'Occupied'),
+        ('CLEANING', 'Cleaning'),
         ('MAINTENANCE', 'Maintenance'),
     )
     
@@ -23,6 +26,9 @@ class Room(models.Model):
     capacity = models.IntegerField(default=1)
     price_per_night = models.DecimalField(max_digits=8, decimal_places=2)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='AVAILABLE')
+    is_archived = models.BooleanField(default=False)
+    description = models.TextField(blank=True, null=True)
+    amenities = models.TextField(blank=True, null=True, help_text="Comma-separated amenities")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -19,15 +19,14 @@ import { getInitials } from "@/lib/utils"
 import {
   User,
   Settings,
-  CreditCard,
-  Bell,
   LogOut,
   ChevronDown,
+  Key,
 } from "lucide-react"
 
 export function UserNav() {
   const navigate = useNavigate()
-  const { logout } = useAuth()
+  const { logout, role } = useAuth()
   const { name, email, avatar } = useCurrentUser()
 
   const initials = getInitials(name)
@@ -37,6 +36,8 @@ export function UserNav() {
     toast.success("Signed out successfully")
     navigate("/auth/sign-in")
   }
+
+  const prefix = role === "org:admin" ? "/admin" : "/client"
 
   return (
     <DropdownMenu>
@@ -74,21 +75,17 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem onClick={() => navigate("/settings/user")} className="cursor-pointer gap-2">
+          <DropdownMenuItem onClick={() => navigate(prefix + "/settings/user")} className="cursor-pointer gap-2">
             <User className="size-4 text-muted-foreground" />
             Profile
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => navigate("/settings/account")} className="cursor-pointer gap-2">
+          <DropdownMenuItem onClick={() => navigate(prefix + "/settings/password")} className="cursor-pointer gap-2">
+            <Key className="size-4 text-muted-foreground" />
+            Password
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigate(prefix + "/settings/preferences")} className="cursor-pointer gap-2">
             <Settings className="size-4 text-muted-foreground" />
-            Account Settings
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => navigate("/settings/billing")} className="cursor-pointer gap-2">
-            <CreditCard className="size-4 text-muted-foreground" />
-            Billing
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => navigate("/settings/notifications")} className="cursor-pointer gap-2">
-            <Bell className="size-4 text-muted-foreground" />
-            Notifications
+            Preferences
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

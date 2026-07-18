@@ -35,13 +35,15 @@ class User(AbstractUser):
     ROLE_CHOICES = (
         ('ADMIN', 'Admin'),
         ('RECEPTIONIST', 'Receptionist'),
+        ('CLIENT', 'Client'),
     )
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     clerk_id = models.CharField(max_length=100, unique=True, null=True, blank=True)
     username = None
     email = models.EmailField(unique=True)
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='RECEPTIONIST')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='CLIENT')
+    phone = models.CharField(max_length=20, null=True, blank=True)
     
     objects = UserManager()
     

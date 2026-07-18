@@ -26,7 +26,7 @@ export function AdminRoute({ children }: AdminRouteProps) {
       toast.error("Permission Denied", {
         description: "You do not have administrator access to this page.",
       })
-      navigate("/dashboard")
+      navigate("/client/dashboard")
     }
   }, [isAdmin, isLoading, isAuthenticated, navigate])
 

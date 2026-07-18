@@ -13,15 +13,15 @@ export function DynamicBreadcrumbs() {
   const location = useLocation()
   const pathnames = location.pathname.split("/").filter((x) => x)
 
-  // Don't render if at root or landing page
-  if (pathnames.length === 0 || pathnames[0] === "landing") return null
+  // Don't render if at root
+  if (pathnames.length === 0) return null
 
   return (
     <Breadcrumb className="mb-1">
       <BreadcrumbList>
         <BreadcrumbItem>
           <BreadcrumbLink asChild>
-            <Link to="/dashboard" className="transition-colors hover:text-foreground">Home</Link>
+            <Link to="/admin/dashboard" className="transition-colors hover:text-foreground">Home</Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
         {pathnames.map((value, index) => {

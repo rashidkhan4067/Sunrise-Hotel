@@ -1,15 +1,17 @@
+import { useUser } from "@clerk/react"
 import { useAuth } from "@/contexts/auth-context"
 
 export function useCurrentUser() {
-  const { user: authUser, role } = useAuth()
+  const { user } = useUser()
+  const { role } = useAuth()
 
   return {
-    name: authUser?.fullName || authUser?.firstName || "User",
+    name: user?.fullName || user?.firstName || "User",
     email:
-      authUser?.primaryEmailAddress?.emailAddress ||
-      authUser?.emailAddresses?.[0]?.emailAddress ||
+      user?.primaryEmailAddress?.emailAddress ||
+      user?.emailAddresses?.[0]?.emailAddress ||
       "",
-    avatar: authUser?.imageUrl || "",
+    avatar: user?.imageUrl || "",
     role,
   }
 }
