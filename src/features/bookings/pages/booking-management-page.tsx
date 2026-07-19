@@ -39,6 +39,7 @@ import {
   checkOutBooking,
   cancelBooking,
 } from "../api"
+import { isAdminRole } from "@/lib/utils"
 
 export function BookingManagementPage() {
   const { getToken, role: authRole } = useAuth()
@@ -50,10 +51,12 @@ export function BookingManagementPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
-
   // Filters
-  const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
+  const [search, setSearch] = useState(() => searchParams.get("search") || "")
+  const [statusFilter, setStatusFilter] = useState(() => {
+    const s = searchParams.get("status")
+    return s ? s.toUpperCase() : "all"
+  })
   const [typeFilter, setTypeFilter] = useState("all")
   const [checkInFilter, setCheckInFilter] = useState("")
   const [checkOutFilter, setCheckOutFilter] = useState("")
@@ -73,6 +76,14 @@ export function BookingManagementPage() {
   useEffect(() => {
     if (searchParams.get("action") === "new") {
       setAddOpen(true)
+    }
+    const searchVal = searchParams.get("search")
+    if (searchVal !== null) {
+      setSearch(searchVal)
+    }
+    const statusVal = searchParams.get("status")
+    if (statusVal !== null) {
+      setStatusFilter(statusVal.toUpperCase())
     }
   }, [searchParams])
 
@@ -133,12 +144,8 @@ export function BookingManagementPage() {
   }
 
   // ─── Handlers ────────────────────────────────
-  async function getToken_() {
-    return getToken()
-  }
-
   async function handleAdd(values: BookingFormValues) {
-    const token = await getToken_()
+    const token = await getToken()
     await createBooking(values, token!)
     toast.success("Booking created successfully")
     await loadBookings()
@@ -146,7 +153,7 @@ export function BookingManagementPage() {
 
   async function handleEdit(values: BookingFormValues) {
     if (!selected) return
-    const token = await getToken_()
+    const token = await getToken()
     await updateBooking(selected.booking_id, values, token!)
     toast.success("Booking updated successfully")
     await loadBookings()
@@ -156,7 +163,7 @@ export function BookingManagementPage() {
     if (!selected) return
     setActionLoading(true)
     try {
-      const token = await getToken_()
+      const token = await getToken()
       await checkInBooking(selected.booking_id, token!)
       toast.success(`${selected.guest_details?.full_name} has been checked in`)
       setCheckInOpen(false)
@@ -172,7 +179,7 @@ export function BookingManagementPage() {
     if (!selected) return
     setActionLoading(true)
     try {
-      const token = await getToken_()
+      const token = await getToken()
       await checkOutBooking(selected.booking_id, token!)
       toast.success(`${selected.guest_details?.full_name} has been checked out`)
       setCheckOutOpen(false)
@@ -188,7 +195,7 @@ export function BookingManagementPage() {
     if (!selected) return
     setActionLoading(true)
     try {
-      const token = await getToken_()
+      const token = await getToken()
       await cancelBooking(selected.booking_id, token!)
       toast.success("Booking cancelled")
       setCancelOpen(false)
@@ -204,7 +211,7 @@ export function BookingManagementPage() {
     if (!selected) return
     setActionLoading(true)
     try {
-      const token = await getToken_()
+      const token = await getToken()
       await deleteBooking(selected.booking_id, token!)
       toast.success("Booking deleted")
       setDeleteOpen(false)
@@ -216,7 +223,7 @@ export function BookingManagementPage() {
     }
   }
 
-  const isAdmin = role === "org:admin" || role === "Admin" || role === "ADMIN"
+  const isAdmin = isAdminRole(role)
 
   const bookingColumns: ColumnDef<Booking>[] = [
     {
@@ -462,15 +469,15 @@ export function BookingManagementPage() {
           {[
             {
               title: "Total Bookings",
-              value: bookings.length,
+              value: filtered.length,
               icon: ClipboardList,
-              badgeText: "Live",
-              footerText: "All system reservations",
+              badgeText: filtered.length !== bookings.length ? "Filtered" : "Live",
+              footerText: filtered.length !== bookings.length ? `${filtered.length} of ${bookings.length} total` : "All system reservations",
               footerSubtext: "Active & completed bookings",
             },
             {
               title: "Pending / Confirmed",
-              value: bookings.filter((b) => b.status === "PENDING" || b.status === "CONFIRMED").length,
+              value: filtered.filter((b) => b.status === "PENDING" || b.status === "CONFIRMED").length,
               icon: Clock,
               badgeText: "Upcoming",
               footerText: "Awaiting arrival",
@@ -478,7 +485,7 @@ export function BookingManagementPage() {
             },
             {
               title: "Checked In",
-              value: bookings.filter((b) => b.status === "CHECKED_IN").length,
+              value: filtered.filter((b) => b.status === "CHECKED_IN").length,
               icon: LogIn,
               badgeText: "In-House",
               footerText: "Currently occupying",
@@ -487,7 +494,7 @@ export function BookingManagementPage() {
             },
             {
               title: "Checked Out",
-              value: bookings.filter((b) => b.status === "CHECKED_OUT").length,
+              value: filtered.filter((b) => b.status === "CHECKED_OUT").length,
               icon: LogOut,
               badgeText: "Completed",
               footerText: "Fulfilled stays",

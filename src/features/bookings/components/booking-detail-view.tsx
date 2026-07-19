@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { BookingStatusBadge } from "@/components/shared"
-import { formatDate } from "@/utils/format"
+import { formatDate, formatCurrency } from "@/utils/format"
 import type { Booking } from "../types"
 import { CalendarDays, User, Bed, DollarSign, Clock } from "lucide-react"
 
@@ -37,7 +37,7 @@ export function BookingDetailView({ open, onOpenChange, booking }: BookingDetail
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between gap-2">
             <span>Booking Details</span>
@@ -62,7 +62,7 @@ export function BookingDetailView({ open, onOpenChange, booking }: BookingDetail
               <DetailRow label="Nights" value={`${nights} night${nights !== 1 ? "s" : ""}`} />
               <DetailRow
                 label="Total Price"
-                value={<span className="text-emerald-600 dark:text-emerald-400">${Number(booking.total_price).toFixed(2)}</span>}
+                value={<span className="text-emerald-600 dark:text-emerald-400">{formatCurrency(booking.total_price)}</span>}
               />
             </div>
           </div>
@@ -108,7 +108,7 @@ export function BookingDetailView({ open, onOpenChange, booking }: BookingDetail
               <DetailRow label="Capacity" value={`${booking.room_details?.capacity ?? "—"} Guests`} />
               <DetailRow
                 label="Rate/Night"
-                value={`$${Number(booking.room_details?.price_per_night || 0).toFixed(2)}`}
+                value={formatCurrency(booking.room_details?.price_per_night)}
               />
             </div>
           </div>

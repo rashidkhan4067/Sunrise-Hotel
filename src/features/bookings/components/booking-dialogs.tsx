@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useSearchParams } from "react-router-dom"
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Loader2, AlertTriangle, LogIn, LogOut, XCircle } from "lucide-react"
+import { formatCurrency } from "@/utils/format"
 import { bookingFormSchema, type BookingFormValues } from "../schemas"
 import type { Booking, Guest } from "../types"
 import type { Room } from "@/features/rooms"
@@ -69,6 +71,9 @@ export function BookingFormDialog({
   getToken,
   onSubmit,
 }: BookingFormDialogProps) {
+  const [searchParams] = useSearchParams()
+  const queryRoomId = searchParams.get("room_id") || ""
+
   const [guests, setGuests] = useState<Guest[]>([])
   const [availableRooms, setAvailableRooms] = useState<Room[]>([])
   const [fetchingRooms, setFetchingRooms] = useState(false)
@@ -77,6 +82,7 @@ export function BookingFormDialog({
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   const today = new Date().toISOString().split("T")[0]
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0]
 
   const {
     register,
@@ -84,14 +90,15 @@ export function BookingFormDialog({
     control,
     watch,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<BookingFormValues>({
     resolver: zodResolver(bookingFormSchema) as any,
     defaultValues: {
       guest: "",
-      room: "",
+      room: queryRoomId || "",
       check_in: today,
-      check_out: "",
+      check_out: tomorrow,
       adults: 1,
       children: 0,
       status: "PENDING",
@@ -124,10 +131,15 @@ export function BookingFormDialog({
     if (!open) return
     setGuestsLoading(true)
     getToken().then((token) => fetchGuests(token!))
-      .then((data) => setGuests(data))
+      .then((data) => {
+        setGuests(data)
+        if (data && data.length === 1 && mode === "add") {
+          setValue("guest", String(data[0].id))
+        }
+      })
       .catch(() => setGuests([]))
       .finally(() => setGuestsLoading(false))
-  }, [open, getToken])
+  }, [open, getToken, mode, setValue])
 
   // Load available rooms when dates change
   useEffect(() => {
@@ -137,10 +149,28 @@ export function BookingFormDialog({
     }
     setFetchingRooms(true)
     getToken().then((token) => fetchAvailableRooms(checkIn, checkOut, token!))
-      .then((data) => setAvailableRooms(Array.isArray(data) ? data : ((data as any)?.results || [])))
-      .catch(() => setAvailableRooms([]))
+      .then((data) => {
+        let roomsList = Array.isArray(data) ? data : ((data as any)?.results || [])
+        if (mode === "edit" && booking && booking.room_details) {
+          const hasCurrentRoom = roomsList.some((r: any) => String(r.id) === String(booking.room))
+          if (!hasCurrentRoom) {
+            roomsList = [booking.room_details, ...roomsList]
+          }
+        } else if (mode === "add" && queryRoomId) {
+          // If we passed queryRoomId but the room list returned empty, keep the preset room if possible
+          // In most cases, it will be fetched or will default to selected
+        }
+        setAvailableRooms(roomsList)
+      })
+      .catch(() => {
+        let roomsList: Room[] = []
+        if (mode === "edit" && booking && booking.room_details) {
+          roomsList = [booking.room_details]
+        }
+        setAvailableRooms(roomsList)
+      })
       .finally(() => setFetchingRooms(false))
-  }, [checkIn, checkOut, getToken])
+  }, [checkIn, checkOut, getToken, mode, booking, queryRoomId])
 
   // Populate form when editing
   useEffect(() => {
@@ -155,19 +185,19 @@ export function BookingFormDialog({
         children: booking.children,
         status: booking.status,
       })
-    } else {
-      reset({
-        guest: "",
-        room: "",
-        check_in: today,
-        check_out: "",
-        adults: 1,
-        children: 0,
-        status: "PENDING",
-      })
-    }
+      } else {
+        reset({
+          guest: "",
+          room: queryRoomId || "",
+          check_in: today,
+          check_out: tomorrow,
+          adults: 1,
+          children: 0,
+          status: "PENDING",
+        })
+      }
     setSubmitError(null)
-  }, [open, mode, booking, reset, today])
+  }, [open, mode, booking, reset, today, queryRoomId])
 
   const onValid = async (values: BookingFormValues) => {
     setSubmitting(true)
@@ -190,7 +220,7 @@ export function BookingFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
@@ -227,7 +257,7 @@ export function BookingFormDialog({
               {estimatedPrice && (
                 <>
                   <span className="text-border">|</span>
-                  <span>Estimated total: <strong className="text-foreground">${estimatedPrice}</strong></span>
+                  <span>Estimated total: <strong className="text-foreground">{formatCurrency(Number(estimatedPrice))}</strong></span>
                 </>
               )}
               {fetchingRooms && (
@@ -246,6 +276,13 @@ export function BookingFormDialog({
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" /> Loading guests...
               </div>
+            ) : guests.length === 1 ? (
+              <Input
+                id="guest-select"
+                value={`${guests[0].full_name} (${guests[0].email || "No email"})`}
+                disabled
+                className="bg-muted text-muted-foreground select-none opacity-85"
+              />
             ) : (
               <Controller
                 name="guest"
@@ -303,7 +340,7 @@ export function BookingFormDialog({
                       ) : (
                         availableRooms.map((r) => (
                           <SelectItem key={r.id} value={String(r.id)}>
-                            Room {r.room_number} — {r.room_type?.toLowerCase()} — ${Number(r.price_per_night).toFixed(2)}/night
+                            Room {r.room_number} — {r.room_type?.toLowerCase()} — {formatCurrency(r.price_per_night)}/night
                           </SelectItem>
                         ))
                       )}

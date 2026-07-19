@@ -4,6 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { BaseLayout } from "@/components/layouts/base-layout"
+import { SettingsTabs } from "@/components/shared"
+import { useAppStore } from "@/store/use-app-store"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
@@ -40,50 +42,38 @@ type PreferencesFormValues = z.infer<typeof preferencesFormSchema>
 
 export default function PreferencesSettingsPage() {
   const [saving, setSaving] = useState(false)
+  const preferences = useAppStore((state) => state.preferences)
+  const updatePreferences = useAppStore((state) => state.updatePreferences)
 
   const form = useForm<PreferencesFormValues>({
     resolver: zodResolver(preferencesFormSchema),
-    defaultValues: {
-      defaultCheckoutStatus: "dirty",
-      autoAssignRooms: true,
-      cancellationPolicy: "24h",
-      emailAlerts: true,
-      appAlerts: true,
-      autoCleanupAlerts: false,
-    },
+    defaultValues: preferences,
   })
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("pref-system-settings")
-      if (stored) {
-        form.reset(JSON.parse(stored))
-      }
-    } catch (e) {
-      console.error("Failed to load preferences from localStorage", e)
+    if (preferences) {
+      form.reset(preferences)
     }
-  }, [form])
+  }, [preferences, form])
 
   function onSubmit(values: PreferencesFormValues) {
     setSaving(true)
-    setTimeout(() => {
-      try {
-        localStorage.setItem("pref-system-settings", JSON.stringify(values))
-        toast.success("System preferences updated!", {
-          description: "Your system rules, theme settings, and alerts have been saved.",
-        })
-      } catch (err) {
-        toast.error("Failed to save system preferences.")
-      } finally {
-        setSaving(false)
-      }
-    }, 800)
+    try {
+      updatePreferences(values)
+      toast.success("System preferences updated!", {
+        description: "Your system rules, theme settings, and alerts have been saved.",
+      })
+    } catch (err) {
+      toast.error("Failed to save system preferences.")
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
     <BaseLayout title="System Preferences" description="Configure core hotel workflows, notification rules, and default templates.">
       <div className="px-4 lg:px-6 max-w-4xl space-y-6">
-
+        <SettingsTabs />
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             

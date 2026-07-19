@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { BaseLayout } from "@/components/layouts/base-layout"
+import { SettingsTabs } from "@/components/shared"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent,CardHeader, CardDescription, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -79,7 +80,7 @@ export default function UserSettingsPage() {
     }
   }, [name, email, avatar, role, form, user])
 
-  console.log("[UserSettingsPage] Avatar State:", { avatar, profileImage, useDefaultIcon })
+
 
   async function onSubmit(data: UserFormValues) {
     try {
@@ -161,6 +162,7 @@ export default function UserSettingsPage() {
   return (
     <BaseLayout title="User Settings" description="Manage your personal information and preferences">
       <div className="px-4 lg:px-6">
+        <SettingsTabs />
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <Card>

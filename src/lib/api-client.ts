@@ -39,7 +39,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     throw new Error(typeof errorMessage === "string" ? errorMessage : JSON.stringify(errorMessage))
   }
 
-  if (response.status === 240 || response.status === 204) {
+  if (response.status === 204) {
     return true as T
   }
 

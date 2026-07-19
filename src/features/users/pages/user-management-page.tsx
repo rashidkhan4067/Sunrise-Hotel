@@ -46,9 +46,13 @@ const getStatusColor = (status: string) => {
 }
 
 const getRoleColor = (role: string) => {
-  return role === "Admin"
-    ? "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20"
-    : "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20"
+  if (role === "Admin") {
+    return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20"
+  }
+  if (role === "Receptionist") {
+    return "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20"
+  }
+  return "text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/20"
 }
 
 
@@ -77,6 +81,7 @@ export function UserManagementPage() {
   const [targetUser, setTargetUser] = useState<User | null>(null)
 
   useEffect(() => {
+    localStorage.removeItem("registered_users_cache")
     if (hasInitialized) return
     if (!isOrgLoaded || !isUserLoaded) return
     
@@ -86,9 +91,6 @@ export function UserManagementPage() {
         if (token) {
           const data = await fetchUsers(token)
           if (Array.isArray(data)) {
-            const cachedStr = localStorage.getItem("registered_users_cache")
-            const cachedList = cachedStr ? JSON.parse(cachedStr) : []
-            
             const currentUserEmail = currentUser?.primaryEmailAddress?.emailAddress || currentUser?.emailAddresses?.[0]?.emailAddress || ""
 
             const enrichedData = data.map(u => {
@@ -96,35 +98,12 @@ export function UserManagementPage() {
               if (!avatar || !(avatar.startsWith("http") || avatar.startsWith("data:"))) {
                 if (currentUserEmail && u.email.toLowerCase() === currentUserEmail.toLowerCase()) {
                   avatar = currentUser?.imageUrl || ""
-                } else {
-                  const cached = cachedList.find((c: any) => c.email.toLowerCase() === u.email.toLowerCase())
-                  if (cached && cached.avatar) {
-                    avatar = cached.avatar
-                  }
                 }
               }
               return { ...u, avatar }
             })
             
-            // Merge local storage cached users
-            const mergedList = [...enrichedData]
-            for (const cached of cachedList) {
-              if (cached.email && cached.name && !mergedList.some(u => u.email.toLowerCase() === cached.email.toLowerCase())) {
-                mergedList.push({
-                  id: cached.id || "local_" + Math.random().toString(36).substr(2, 9),
-                  name: cached.name,
-                  email: cached.email,
-                  avatar: cached.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(cached.name)}`,
-                  phone: cached.phone || "",
-                  role: cached.role || "Receptionist",
-                  status: cached.status || "Active",
-                  joinedDate: cached.joinedDate || new Date().toISOString().split('T')[0],
-                  lastLogin: cached.lastLogin || new Date().toISOString().split('T')[0],
-                })
-              }
-            }
-            
-            setUsers(mergedList)
+            setUsers(enrichedData)
             setHasInitialized(true)
             return
           }
@@ -169,47 +148,14 @@ export function UserManagementPage() {
         ]
       }
       
-      let cachedUsers: User[] = []
-      try {
-        const stored = localStorage.getItem("registered_users_cache")
-        if (stored) {
-          const list = JSON.parse(stored)
-          cachedUsers = list.map((u: any, idx: number) => ({
-            id: u.id || "local_" + idx + 1,
-            name: u.name,
-            email: u.email,
-            avatar: u.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.name)}`,
-            phone: u.phone || "",
-            role: u.role || "Receptionist",
-            status: u.status || "Active",
-            joinedDate: u.joinedDate || new Date().toISOString().split('T')[0],
-            lastLogin: u.lastLogin || new Date().toISOString().split('T')[0],
-          }))
-        }
-      } catch (e) {
-        console.error("Failed to parse cached registered users:", e)
-      }
-      
-      const mergedList = [...mapped]
-      for (const cached of cachedUsers) {
-        if (!mergedList.some(u => u.email.toLowerCase() === cached.email.toLowerCase())) {
-          mergedList.push({
-            ...cached,
-            id: mergedList.length + 1
-          })
-        }
-      }
-      setUsers(mergedList)
+      setUsers(mapped)
       setHasInitialized(true)
     }
     loadRealUsers()
   }, [isOrgLoaded, isUserLoaded, memberships, currentUser, hasInitialized, getToken])
 
-  // Save changes helper
-  const saveToLocalCache = (list: User[]) => {
-    const localOnly = list.filter(u => String(u.id).startsWith("local_") || u.email.toLowerCase() !== currentUser?.primaryEmailAddress?.emailAddress?.toLowerCase())
-    localStorage.setItem("registered_users_cache", JSON.stringify(localOnly))
-  }
+  // Save changes helper (no-op since we do not use local cache anymore)
+  const saveToLocalCache = (list: User[]) => {}
 
   // Add Staff Member Submit
   const handleAddSubmit = async (data: {
@@ -590,7 +536,7 @@ export function UserManagementPage() {
 
   return (
     <BaseLayout 
-      title="User Management" 
+      title="Staff Management" 
       description="Manage hotel system operators, receptionists, and access permissions"
     >
       <div className="flex flex-col gap-4">

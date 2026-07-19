@@ -5,7 +5,8 @@ import { BaseLayout } from "@/components/layouts/base-layout"
 import { Button } from "@/components/ui/button"
 import { FileDown, FileText, ClipboardList, DollarSign, Activity, Users, TrendingUp } from "lucide-react"
 import { StatCard } from "@/components/stat-card"
-import { formatCurrency } from "@/utils/format"
+import { formatCurrency, downloadCSV } from "@/utils/format"
+import { useAppStore } from "@/store/use-app-store"
 import { ReportFilterBar } from "./components/report-filter-bar"
 import { ReportTable } from "./components/report-table"
 import { ReportCharts } from "./components/report-charts"
@@ -23,27 +24,23 @@ export default function ReportsPage() {
   })
 
   const { rows, summary, loading } = useReportData(filters)
+  const currency = useAppStore((state) => state.hotelInfo.currency)
 
   const handleExportCSV = () => {
     if (!rows.length) return
-    const headers = ["Date", "Bookings", "Revenue ($)", "Check-ins", "Check-outs", "Occupancy (%)", "Avg Stay (nights)"]
-    const csvRows = rows.map((r) => [
-      r.date,
-      r.bookings,
-      r.revenue.toFixed(2),
-      r.checkIns,
-      r.checkOuts,
-      r.occupancyPct,
-      r.avgStay.toFixed(1),
-    ])
-    const csv = [headers, ...csvRows].map((row) => row.join(",")).join("\n")
-    const blob = new Blob([csv], { type: "text/csv" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `hotel-report-${filters.dateRange}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadCSV(
+      ["Date", "Bookings", `Revenue (${currency})`, "Check-ins", "Check-outs", "Occupancy (%)", "Avg Stay (nights)"],
+      rows.map((r) => [
+        r.date,
+        r.bookings,
+        r.revenue.toFixed(2),
+        r.checkIns,
+        r.checkOuts,
+        r.occupancyPct,
+        r.avgStay.toFixed(1),
+      ]),
+      `hotel-report-${filters.dateRange}`
+    )
   }
 
   const handleExportPDF = () => {
@@ -91,19 +88,17 @@ export default function ReportsPage() {
                 title: "Total Revenue",
                 value: formatCurrency(summary.totalRevenue),
                 icon: DollarSign,
-                badgeText: "+12.5%",
-                footerText: "Trending up this period",
+                footerText: "Confirmed + checked-out stays",
                 footerIcon: TrendingUp,
-                footerSubtext: "Confirmed + checked-out stays",
+                footerSubtext: `Total for selected period`,
               },
               {
                 title: "Occupancy Rate",
                 value: `${summary.occupancyRate}%`,
                 icon: Activity,
-                badgeText: "+4.5%",
-                footerText: "Steady performance increase",
+                footerText: "Average across selected period",
                 footerIcon: TrendingUp,
-                footerSubtext: "Average across selected period",
+                footerSubtext: "Rooms occupied vs. total",
               },
               {
                 title: "Active Guests",

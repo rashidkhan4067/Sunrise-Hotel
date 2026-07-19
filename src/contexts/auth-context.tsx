@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react"
 import { useAuth as useClerkAuth, useUser as useClerkUser, useClerk, useOrganization } from "@clerk/react"
+import { apiClient } from "@/lib/api-client"
 
 export type LoginResult = boolean | { status: "needs_second_factor"; strategy: "totp" | "phone_code" }
 
@@ -26,11 +27,33 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
-const resolveUserRole = (userObj: any, _membershipRole?: string | null): string => {
+const resolveUserRole = (userObj: any, membershipRole?: string | null): string => {
   if (!userObj) return "org:member"
 
-  const userEmail = userObj.primaryEmailAddress?.emailAddress || userObj.emailAddresses?.[0]?.emailAddress || ""
-  if (userEmail && userEmail.toLowerCase() === "rashidshafique.dev@gmail.com") {
+  const emails = [
+    userObj.primaryEmailAddress?.emailAddress,
+    ...(userObj.emailAddresses?.map((e: any) => e.emailAddress) || [])
+  ].filter(Boolean).map((e: string) => e.toLowerCase())
+
+  // Dynamically load Admin emails from the Vite environment variable
+  const adminEmailsEnv = import.meta.env.VITE_ADMIN_EMAILS || ""
+  const adminEmails = [
+    "admin@sunrise.com",
+    ...adminEmailsEnv.split(",").map((e: string) => e.trim().toLowerCase())
+  ].filter(Boolean)
+
+  if (emails.some(e => adminEmails.includes(e))) {
+    return "org:admin"
+  }
+
+  // Prefer org membership role from Clerk (org:admin / org:member)
+  if (membershipRole) {
+    return membershipRole
+  }
+
+  // Fallback: check publicMetadata for role field
+  const metaRole = userObj.publicMetadata?.role
+  if (metaRole === "org:admin" || metaRole === "admin" || metaRole === "ADMIN") {
     return "org:admin"
   }
 
@@ -39,15 +62,6 @@ const resolveUserRole = (userObj: any, _membershipRole?: string | null): string 
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || ""
-
-  useEffect(() => {
-    console.log("[AuthDiagnostic]", {
-      hasPublishableKey: !!CLERK_PUBLISHABLE_KEY,
-      publishableKeyLength: CLERK_PUBLISHABLE_KEY.length,
-      currentUrl: window.location.href,
-      searchParams: window.location.search
-    })
-  }, [CLERK_PUBLISHABLE_KEY])
 
   const clerkAuth = useClerkAuth()
   const clerkUser = useClerkUser()
@@ -70,10 +84,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   })
 
+  // Clerk loading state indicator
   const isClerkLoaded = clerkAuth.isLoaded && clerk.client
-
   const isLoading = !isClerkLoaded
-  const isAuthenticated = isClerkLoaded ? (!!clerkAuth.isSignedIn || isAuthenticating) : false
+  const hasLocalActiveSession = isClerkLoaded ? (clerk.client?.sessions?.some((s: any) => s.status === "active") ?? false) : false
+  const isAuthenticated = !!cachedData || (isClerkLoaded ? (!!clerkAuth.isSignedIn || isAuthenticating || hasLocalActiveSession) : false)
   
   const [currentUser, setCurrentUser] = useState<any>(() => {
     if (cachedData) {
@@ -174,6 +189,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const email = userObj.primaryEmailAddress?.emailAddress || userObj.emailAddresses?.[0]?.emailAddress || ""
         const activeRole = resolveUserRole(userObj, membership?.role)
         
+        // Sync user details with Django backend
+        const fullName = `${userObj.firstName || ""} ${userObj.lastName || ""}`.trim()
+        const lastSyncedName = sessionStorage.getItem("clerk_last_synced_name")
+        const lastSyncedEmail = sessionStorage.getItem("clerk_last_synced_email")
+        if (fullName && (lastSyncedName !== fullName || lastSyncedEmail !== email)) {
+          getToken().then(token => {
+            if (token) {
+              apiClient.patch("/auth/me/", {
+                first_name: userObj.firstName || "",
+                last_name: userObj.lastName || "",
+                email: email
+              }, token)
+              .then(() => {
+                sessionStorage.setItem("clerk_last_synced_name", fullName)
+                sessionStorage.setItem("clerk_last_synced_email", email)
+                console.log("[AuthContext] Synced profile with Django backend:", fullName, email)
+              })
+              .catch(err => console.warn("Failed to sync profile details with backend:", err))
+            }
+          })
+        }
+        
         // Always bind to live Clerk user details for valid image URL signatures
         setCurrentUser(userObj)
         setCurrentRole(activeRole)
@@ -220,21 +257,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem("registered_users_cache", JSON.stringify(list))
         } catch (e) {
           console.error("[AuthContext] Failed to update registered users cache:", e)
-        }
-      }
-    } else if (!isAuthenticating) {
-      // Only remove cache if Clerk explicitly reports signed out, no local session exists, and we are not currently authenticating
-      const sessions = clerk.client?.sessions || []
-      const hasLocalSession = sessions.length > 0
-
-      if (!hasLocalSession) {
-        const cached = localStorage.getItem("clerk_cached_user")
-        if (cached) {
-          console.log("[AuthContext] No local session found. Clearing user cache.")
-          localStorage.removeItem("clerk_cached_user")
-          setCachedData(null)
-          setCurrentUser(null)
-          setCurrentRole("org:member")
         }
       }
     }

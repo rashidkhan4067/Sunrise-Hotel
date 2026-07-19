@@ -34,8 +34,9 @@ const NotFound = lazy(() => import('@/app/errors/not-found/page'))
 const InternalServerError = lazy(() => import('@/app/errors/internal-server-error/page'))
 const UnderMaintenance = lazy(() => import('@/app/errors/under-maintenance/page'))
 
-// ─── Client Pages ──────────────────────────────────────────────
-const ClientDashboard = lazy(() => import('@/app/client/dashboard/page'))
+// ─── Guest Pages ───────────────────────────────────────────────
+const GuestDashboard = lazy(() => import('@/app/guest/dashboard/page'))
+const GuestBookings = lazy(() => import('@/app/guest/bookings/page'))
 
 export interface RouteConfig {
   path: string
@@ -55,7 +56,7 @@ function RootRedirect() {
     return <Navigate to="/auth/sign-in" replace />
   }
 
-  return <Navigate to={role === "org:admin" ? "/admin/dashboard" : "/client/dashboard"} replace />
+  return <Navigate to={role === "org:admin" ? "/admin/dashboard" : "/guest/dashboard"} replace />
 }
 
 export const routes: RouteConfig[] = [
@@ -117,21 +118,25 @@ export const routes: RouteConfig[] = [
     element: <ProtectedRoute><PreferencesSettings /></ProtectedRoute>
   },
 
-  // ─── Client Portal ──────────────────────────────────────────
+  // ─── Guest Portal ───────────────────────────────────────────
   {
-    path: "/client/dashboard",
-    element: <ProtectedRoute><ClientDashboard /></ProtectedRoute>
+    path: "/guest/dashboard",
+    element: <ProtectedRoute><GuestDashboard /></ProtectedRoute>
   },
   {
-    path: "/client/settings/user",
+    path: "/guest/bookings",
+    element: <ProtectedRoute><GuestBookings /></ProtectedRoute>
+  },
+  {
+    path: "/guest/settings/user",
     element: <ProtectedRoute><UserSettings /></ProtectedRoute>
   },
   {
-    path: "/client/settings/password",
+    path: "/guest/settings/password",
     element: <ProtectedRoute><PasswordSettings /></ProtectedRoute>
   },
   {
-    path: "/client/settings/preferences",
+    path: "/guest/settings/preferences",
     element: <ProtectedRoute><PreferencesSettings /></ProtectedRoute>
   },
 

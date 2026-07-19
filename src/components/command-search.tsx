@@ -246,11 +246,16 @@ export function SearchTrigger({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="inline-flex items-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border-none md:border border-input bg-transparent md:bg-background shadow-none md:shadow-xs hover:bg-accent hover:text-accent-foreground h-9 w-9 md:w-36 lg:w-56 justify-center md:justify-start px-2 py-1 md:px-3 text-muted-foreground cursor-pointer relative"
+      className={cn(
+        "inline-flex items-center gap-2.5 whitespace-nowrap rounded-lg text-xs font-semibold transition-all duration-200",
+        "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary",
+        "border border-border/80 bg-muted/30 hover:bg-muted/65 hover:border-border",
+        "h-8.5 w-10 md:w-48 lg:w-64 justify-center md:justify-start px-2.5 text-muted-foreground hover:text-foreground cursor-pointer relative shadow-3xs"
+      )}
     >
-      <Search className="size-4 shrink-0" />
-      <span className="hidden md:inline-flex text-xs">Search...</span>
-      <kbd className="pointer-events-none absolute right-1.5 top-2 hidden h-4 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[9px] font-medium opacity-100 lg:flex">
+      <Search className="size-3.5 shrink-0 text-muted-foreground/70" />
+      <span className="hidden md:inline-flex text-[11px] font-medium">Search actions...</span>
+      <kbd className="pointer-events-none absolute right-1.5 top-1.5 hidden h-5 select-none items-center gap-0.5 rounded border border-border/70 bg-background px-1.5 font-mono text-[9px] font-bold text-muted-foreground/80 shadow-3xs lg:flex">
         <span className="text-[10px]">⌘</span>K
       </kbd>
     </button>

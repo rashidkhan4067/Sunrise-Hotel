@@ -3,7 +3,7 @@
 import { useNavigate } from "react-router-dom"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { Button } from "@/components/ui/button"
-import { Plus, UserPlus } from "lucide-react"
+import { Plus, UserPlus, AlertTriangle, RefreshCw } from "lucide-react"
 
 import { useDashboardData } from "@/hooks/use-dashboard-data"
 import { DashboardSkeleton } from "./components/dashboard-skeleton"
@@ -21,7 +21,7 @@ import {
 
 export default function Page() {
   const navigate = useNavigate()
-  const { data, loading } = useDashboardData()
+  const { data, loading, error } = useDashboardData()
 
   const handleNewBooking = () => navigate("/admin/bookings?action=new")
   const handleAddGuest = () => navigate("/admin/guests?action=new")
@@ -55,11 +55,25 @@ export default function Page() {
         </div>
       }
     >
-      {loading || !data ? (
+      {loading ? (
         <DashboardSkeleton />
-      ) : (
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center min-h-[300px] gap-4 text-center px-4">
+          <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+          </div>
+          <div>
+            <p className="font-semibold text-sm text-foreground">Failed to load dashboard</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-xs">{error}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="gap-2">
+            <RefreshCw className="h-3.5 w-3.5" />
+            Retry
+          </Button>
+        </div>
+      ) : data ? (
         <div className="@container/main px-4 lg:px-6 space-y-6">
-          {/* 1. Summary Cards */}
+          {/* 1. Summary Cards — clicking navigates to filtered views */}
           <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
             {[
               {
@@ -70,16 +84,16 @@ export default function Page() {
                 footerText: "Clean & inspected",
                 footerIcon: TrendingUp,
                 footerSubtext: "Available for instant booking",
+                onClick: () => navigate("/admin/rooms?status=available"),
               },
               {
                 title: "Occupied Rooms",
                 value: data.summary.occupiedRooms,
                 icon: Bed,
-                badgeText: "+12.5%",
-                badgeIcon: TrendingUp,
-                footerText: "Trending up this month",
+                footerText: "Currently in-house",
                 footerIcon: TrendingUp,
-                footerSubtext: "Currently checked in guests",
+                footerSubtext: "Checked in guests",
+                onClick: () => navigate("/admin/rooms?status=occupied"),
               },
               {
                 title: "Today's Check-ins",
@@ -89,6 +103,7 @@ export default function Page() {
                 footerText: "Scheduled arrivals",
                 footerIcon: TrendingUp,
                 footerSubtext: "Front desk check-in queue",
+                onClick: () => navigate("/admin/bookings?status=CHECKED_IN"),
               },
               {
                 title: "Today's Check-outs",
@@ -97,9 +112,19 @@ export default function Page() {
                 badgeText: "Today",
                 footerText: "Scheduled departures",
                 footerSubtext: "Pending room release & cleaning",
+                onClick: () => navigate("/admin/bookings?status=CHECKED_OUT"),
               },
             ].map((card) => (
-              <StatCard key={card.title} {...card} />
+              <div
+                key={card.title}
+                onClick={card.onClick}
+                className="cursor-pointer transition-transform hover:scale-[1.01] active:scale-[0.99]"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && card.onClick()}
+              >
+                <StatCard {...card} />
+              </div>
             ))}
           </div>
 
@@ -135,6 +160,9 @@ export default function Page() {
                 onNewBooking={handleNewBooking}
                 onAddGuest={handleAddGuest}
                 onAddRoom={handleAddRoom}
+                todayCheckIns={data.todayCheckIns}
+                todayCheckOuts={data.todayCheckOuts}
+                summary={data.summary}
               />
 
               {/* Upcoming Arrivals */}
@@ -145,7 +173,7 @@ export default function Page() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </BaseLayout>
   )
 }

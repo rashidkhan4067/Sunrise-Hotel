@@ -17,8 +17,12 @@ class StandardResultsSetPagination(PageNumberPagination):
 class RoomViewSet(viewsets.ModelViewSet):
     """ViewSet for managing hotel rooms."""
     serializer_class = RoomSerializer
-    permission_classes = [permissions.IsAuthenticated, IsHotelStaff]
     pagination_class = StandardResultsSetPagination
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve', 'available_rooms']:
+            return [permissions.IsAuthenticated()]
+        return [permissions.IsAuthenticated(), IsHotelStaff()]
 
     def get_queryset(self):
         queryset = Room.objects.filter(is_archived=False)

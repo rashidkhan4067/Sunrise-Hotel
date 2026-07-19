@@ -6,11 +6,6 @@ import {
   addDays,
   subDays,
   startOfWeek,
-  startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
-  isSameMonth,
-  isToday,
   isSameDay,
   addMonths,
   subMonths,
@@ -18,39 +13,13 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
-  LogIn,
-  LogOut,
   RefreshCw,
-  Search,
   Plus,
-  Bed,
-  User,
-  X,
-  Trash2,
-  Edit,
   Loader2,
   AlertTriangle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetFooter,
-} from "@/components/ui/sheet"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { useAuth } from "@/contexts/auth-context"
 import {
   fetchBookings,
@@ -64,25 +33,16 @@ import {
 import type { Booking } from "@/features/bookings/types"
 import { BookingFormDialog } from "@/features/bookings/components/booking-dialogs"
 import type { BookingFormValues } from "@/features/bookings/schemas"
+import { FilterBar } from "@/components/shared"
+import { BaseLayout } from "@/components/layouts/base-layout"
 import { toast } from "sonner"
+import { isAdminRole } from "@/lib/utils"
 
-// ─── Constants & Helpers ──────────────────────
+import type { CalendarEvent } from "../types"
+import { BookingDrawer } from "./booking-drawer"
+import { CalendarViews } from "./calendar-views"
 
-const STATUS_CONFIG: Record<Booking["status"], { label: string; bg: string; text: string; dot: string }> = {
-  PENDING: { label: "Pending", bg: "bg-amber-500/10", text: "text-amber-600 dark:text-amber-400", dot: "bg-amber-500" },
-  CONFIRMED: { label: "Confirmed", bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", dot: "bg-blue-500" },
-  CHECKED_IN: { label: "Checked In", bg: "bg-emerald-500/10", text: "text-emerald-600 dark:text-emerald-400", dot: "bg-emerald-600" },
-  CHECKED_OUT: { label: "Checked Out", bg: "bg-slate-500/10", text: "text-slate-600 dark:text-slate-400", dot: "bg-slate-400" },
-  CANCELLED: { label: "Cancelled", bg: "bg-rose-500/10", text: "text-rose-600 dark:text-rose-400", dot: "bg-rose-500" },
-}
-
-interface CalendarEvent {
-  id: string
-  booking: Booking
-  date: Date
-  kind: "checkin" | "checkout"
-}
-
+// ─── Events Parser Helper ───────────────────
 function toEvents(bookings: Booking[]): CalendarEvent[] {
   const events: CalendarEvent[] = []
   for (const b of bookings) {
@@ -102,12 +62,10 @@ function toEvents(bookings: Booking[]): CalendarEvent[] {
   return events
 }
 
-// ─── Main Component ───────────────────────────
-
 export function HotelCalendar() {
   const { getToken, role: authRole } = useAuth()
   const role = authRole || "org:member"
-  const isAdmin = role === "org:admin" || role === "Admin" || role === "ADMIN"
+  const isAdmin = isAdminRole(role)
 
   // Data Loading
   const [bookings, setBookings] = useState<Booking[]>([])
@@ -128,9 +86,6 @@ export function HotelCalendar() {
   const [editOpen, setEditOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
-
-  // Delete Confirm Dialog State
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
   // ─── Fetch Bookings ──────────────────────────
   async function loadBookings() {
@@ -225,7 +180,6 @@ export function HotelCalendar() {
       const token = await getToken()
       await deleteBooking(selectedBooking.booking_id, token!)
       toast.success("Booking deleted successfully")
-      setDeleteConfirmOpen(false)
       setDrawerOpen(false)
       await loadBookings()
     } catch (err: any) {
@@ -277,7 +231,6 @@ export function HotelCalendar() {
     }
   }
 
-  // ─── Day Renderers ────────────────────────────
   const getDayEvents = (date: Date) => events.filter((e) => isSameDay(e.date, date))
 
   function openDetail(booking: Booking) {
@@ -285,573 +238,180 @@ export function HotelCalendar() {
     setDrawerOpen(true)
   }
 
-  // Event Card Element (richer guest, room, status)
-  function EventCard({ ev }: { ev: CalendarEvent }) {
-    const status = STATUS_CONFIG[ev.booking.status]
-    const isCheckIn = ev.kind === "checkin"
-    return (
-      <div
-        onClick={(e) => {
-          e.stopPropagation()
-          openDetail(ev.booking)
-        }}
-        className={cn(
-          "p-2.5 rounded-lg border border-border shadow-xs hover:shadow-md transition cursor-pointer flex flex-col gap-1.5 text-left bg-card animate-in fade-in-50 duration-150"
-        )}
-      >
-        <div className="flex items-start justify-between gap-2">
-          <span className="font-semibold text-xs text-foreground truncate">
-            {ev.booking.guest_details?.full_name || "—"}
-          </span>
-          <Badge className={cn("text-[9px] px-1.5 py-0 scale-95 origin-right border-none shrink-0", status?.bg, status?.text)}>
-            {status?.label}
-          </Badge>
-        </div>
-
-        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-          <span className="flex items-center gap-1 font-medium text-foreground">
-            <Bed className="h-3.5 w-3.5 text-muted-foreground/75" />
-            Room {ev.booking.room_details?.room_number || "—"}
-          </span>
-          
-          <span className="flex items-center gap-0.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-            {isCheckIn ? (
-              <>
-                <LogIn className="h-3 w-3 text-emerald-500" />
-                In
-              </>
-            ) : (
-              <>
-                <LogOut className="h-3 w-3 text-blue-500" />
-                Out
-              </>
-            )}
-          </span>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="flex flex-col gap-5">
-      {/* ── Practical Filters Row ── */}
-      <div className="border border-border bg-card p-4 rounded-xl shadow-xs flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto items-stretch sm:items-center flex-1 max-w-xl">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by Guest, Room, Booking ID..."
-              className="pl-9"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[160px] cursor-pointer">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="PENDING">Pending</SelectItem>
-              <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-              <SelectItem value="CHECKED_IN">Checked In</SelectItem>
-              <SelectItem value="CHECKED_OUT">Checked Out</SelectItem>
-              <SelectItem value="CANCELLED">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {(search !== "" || statusFilter !== "all") && (
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => {
-                setSearch("")
-                setStatusFilter("all")
-              }}
-              title="Reset Filters"
-              className="cursor-pointer shrink-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+    <BaseLayout
+      title="Booking Calendar"
+      description="Live view of guest check-ins and check-outs across all rooms."
+      actions={
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
-            size="icon"
+            size="sm"
             onClick={loadBookings}
             disabled={loading}
-            className="cursor-pointer shrink-0"
+            className="cursor-pointer gap-2 h-9"
             title="Refresh bookings"
           >
-            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+            <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+            Refresh
           </Button>
 
           <Button
             size="sm"
             onClick={() => setAddOpen(true)}
-            className="cursor-pointer gap-1.5 shrink-0"
+            className="cursor-pointer gap-2 h-9"
           >
             <Plus className="h-4 w-4" /> New Booking
           </Button>
         </div>
-      </div>
+      }
+    >
+      <div className="px-4 lg:px-6 flex flex-col gap-6">
+        {/* Full horizontal Filter bar */}
+        <FilterBar
+          search={{
+            value: search,
+            onChange: setSearch,
+            placeholder: "Search by Guest, Room, Booking ID...",
+            label: "Search Calendar",
+          }}
+          filters={[
+            {
+              id: "status",
+              label: "Booking Status",
+              value: statusFilter,
+              onValueChange: setStatusFilter,
+              options: [
+                { label: "All Statuses", value: "all" },
+                { label: "Pending", value: "PENDING" },
+                { label: "Confirmed", value: "CONFIRMED" },
+                { label: "Checked In", value: "CHECKED_IN" },
+                { label: "Checked Out", value: "CHECKED_OUT" },
+                { label: "Cancelled", value: "CANCELLED" },
+              ],
+            },
+          ]}
+          onReset={() => {
+            setSearch("")
+            setStatusFilter("all")
+          }}
+          isFiltered={search !== "" || statusFilter !== "all"}
+        />
 
-      {/* ── Calendar Grid Container ── */}
-      <div className="border border-border bg-card rounded-xl overflow-hidden flex flex-col shadow-xs">
-        {/* Navigation Toolbar */}
-        <div className="flex items-center justify-between gap-4 p-4 border-b flex-wrap bg-muted/10">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigate("prev")}
-              className="h-8 w-8 cursor-pointer"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigate("next")}
-              className="h-8 w-8 cursor-pointer"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentDate(new Date())}
-              className="cursor-pointer"
-            >
-              Today
-            </Button>
-            <h2 className="text-sm font-semibold text-foreground ml-2">
-              {getActiveDateRangeLabel()}
-            </h2>
-          </div>
-
-          {/* View Toggle */}
-          <div className="flex rounded-lg border border-border p-0.5 bg-background">
-            {(["day", "week", "month"] as const).map((view) => (
+        {/* ── Calendar Grid Container ── */}
+        <div className="border border-border/50 bg-gradient-to-b from-card to-card/95 rounded-xl overflow-hidden flex flex-col shadow-2xs hover:shadow-xs transition-all duration-300">
+          {/* Navigation Toolbar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border-b border-border/30 bg-muted/10">
+            <div className="flex items-center gap-2">
               <Button
-                key={view}
-                variant={viewMode === view ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode(view)}
-                className={cn(
-                  "h-7 text-xs px-3 capitalize cursor-pointer rounded-md",
-                  viewMode === view ? "shadow-xs" : ""
-                )}
+                variant="outline"
+                size="icon"
+                onClick={() => navigate("prev")}
+                className="h-8 w-8 cursor-pointer"
               >
-                {view}
+                <ChevronLeft className="h-4 w-4" />
               </Button>
-            ))}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => navigate("next")}
+                className="h-8 w-8 cursor-pointer"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentDate(new Date())}
+                className="cursor-pointer"
+              >
+                Today
+              </Button>
+              <h2 className="text-sm font-semibold text-foreground ml-2">
+                {getActiveDateRangeLabel()}
+              </h2>
+            </div>
+
+            {/* View Toggle */}
+            <div className="flex rounded-lg border border-border p-0.5 bg-background">
+              {(["day", "week", "month"] as const).map((view) => (
+                <Button
+                  key={view}
+                  variant={viewMode === view ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode(view)}
+                  className={cn(
+                    "h-7 text-xs px-3 capitalize cursor-pointer rounded-md",
+                    viewMode === view ? "shadow-xs" : ""
+                  )}
+                >
+                  {view}
+                </Button>
+              ))}
+            </div>
           </div>
+
+          {/* ── View Renderers ── */}
+          {loading ? (
+            <div className="h-[450px] flex items-center justify-center">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" /> Loading calendar events...
+              </div>
+            </div>
+          ) : error ? (
+            <div className="h-[400px] flex items-center justify-center p-6">
+              <div className="text-center space-y-3">
+                <AlertTriangle className="h-10 w-10 text-destructive mx-auto opacity-75" />
+                <p className="text-sm text-muted-foreground font-medium">{error}</p>
+                <Button onClick={loadBookings} size="sm" className="cursor-pointer">
+                  Retry
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <CalendarViews
+              viewMode={viewMode}
+              currentDate={currentDate}
+              setCurrentDate={setCurrentDate}
+              getDayEvents={getDayEvents}
+              openDetail={openDetail}
+            />
+          )}
         </div>
 
-        {/* ── View Renderers ── */}
-        {loading ? (
-          <div className="h-[450px] flex items-center justify-center">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" /> Loading calendar events...
-            </div>
-          </div>
-        ) : error ? (
-          <div className="h-[400px] flex items-center justify-center p-6">
-            <div className="text-center space-y-3">
-              <AlertTriangle className="h-10 w-10 text-destructive mx-auto opacity-75" />
-              <p className="text-sm text-muted-foreground font-medium">{error}</p>
-              <Button onClick={loadBookings} size="sm" className="cursor-pointer">
-                Retry
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 overflow-x-auto">
-            {/* DAY VIEW */}
-            {viewMode === "day" && (
-              <div className="min-w-[300px] p-4 bg-background">
-                <div className="text-center font-bold text-xs uppercase tracking-wider text-muted-foreground pb-3 border-b">
-                  {format(currentDate, "EEEE, MMMM d")}
-                </div>
-                <div className="space-y-2 mt-4 max-h-[500px] overflow-y-auto pr-1">
-                  {getDayEvents(currentDate).length > 0 ? (
-                    getDayEvents(currentDate).map((ev) => <EventCard key={ev.id} ev={ev} />)
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic text-center py-12">
-                      No check-ins or check-outs scheduled.
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
+        {/* ── Booking Detail Side Drawer ── */}
+        <BookingDrawer
+          open={drawerOpen}
+          onOpenChange={setDrawerOpen}
+          booking={selectedBooking}
+          actionLoading={actionLoading}
+          onCheckIn={handleCheckIn}
+          onCheckOut={handleCheckOut}
+          onCancel={handleCancel}
+          onDelete={handleDelete}
+          onEdit={() => setEditOpen(true)}
+          isAdmin={isAdmin}
+        />
 
-            {/* WEEK VIEW */}
-            {viewMode === "week" && (
-              <div className="flex flex-col md:grid md:grid-cols-7 divide-y md:divide-y-0 md:divide-x divide-border bg-background">
-                {Array.from({ length: 7 }).map((_, i) => {
-                  const start = startOfWeek(currentDate)
-                  const day = addDays(start, i)
-                  const dayEvs = getDayEvents(day)
-                  const isDayToday = isToday(day)
+        {/* ── Add Booking Dialog ── */}
+        <BookingFormDialog
+          open={addOpen}
+          onOpenChange={setAddOpen}
+          mode="add"
+          getToken={getToken}
+          onSubmit={handleAddBooking}
+        />
 
-                  return (
-                    <div key={i} className="flex flex-col min-h-0 md:min-h-[480px]">
-                      {/* Day Header */}
-                      <div
-                        className={cn(
-                          "p-3 border-b bg-muted/15 flex flex-row md:flex-col items-center justify-between md:justify-center gap-2",
-                          isDayToday ? "bg-primary/5 border-b-primary/30" : ""
-                        )}
-                      >
-                        <span className="text-[10px] uppercase font-bold text-muted-foreground">
-                          <span className="md:hidden">{format(day, "EEEE")}</span>
-                          <span className="hidden md:inline">{format(day, "eee")}</span>
-                        </span>
-                        <span
-                          className={cn(
-                            "text-sm font-semibold w-6 h-6 flex items-center justify-center rounded-full",
-                            isDayToday ? "bg-primary text-primary-foreground text-xs" : ""
-                          )}
-                        >
-                          {format(day, "d")}
-                        </span>
-                      </div>
-
-                      {/* Day Events Column */}
-                      <div className="flex-1 p-2.5 space-y-2 max-h-[300px] md:max-h-[400px] overflow-y-auto">
-                        {dayEvs.length > 0 ? (
-                          dayEvs.map((ev) => <EventCard key={ev.id} ev={ev} />)
-                        ) : (
-                          <div className="py-4 md:h-full flex items-center justify-center">
-                            <span className="text-[10px] text-muted-foreground/40 italic">No events</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            {/* MONTH VIEW */}
-            {viewMode === "month" && (
-              <div className="w-full flex flex-col">
-                <div className="grid grid-cols-7 border-b divide-x divide-border bg-muted/20">
-                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                    <div key={day} className="py-2 text-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      {day}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="grid grid-cols-7 divide-x divide-y divide-border border-b bg-background">
-                  {(() => {
-                    const monthStart = startOfMonth(currentDate)
-                    const monthEnd = endOfMonth(currentDate)
-                    const calStart = new Date(monthStart)
-                    calStart.setDate(calStart.getDate() - monthStart.getDay())
-                    const calEnd = new Date(monthEnd)
-                    calEnd.setDate(calEnd.getDate() + (6 - monthEnd.getDay()))
-                    const days = eachDayOfInterval({ start: calStart, end: calEnd })
-
-                    return days.map((day) => {
-                      const dayEvs = getDayEvents(day)
-                      const inMonth = isSameMonth(day, currentDate)
-                      const isDayToday = isToday(day)
-                      const isSelected = isSameDay(day, currentDate)
-
-                      return (
-                        <div
-                          key={day.toISOString()}
-                          onClick={() => setCurrentDate(day)}
-                          className={cn(
-                            "min-h-[50px] md:min-h-[90px] p-1.5 flex flex-col justify-between transition-colors cursor-pointer select-none",
-                            inMonth ? "hover:bg-muted/15" : "bg-muted/10 opacity-40",
-                            isDayToday ? "bg-primary/5" : "",
-                            isSelected ? "ring-2 ring-primary ring-inset bg-primary/5" : ""
-                          )}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <span
-                              className={cn(
-                                "text-xs font-semibold w-5 h-5 flex items-center justify-center rounded-full",
-                                isDayToday ? "bg-primary text-primary-foreground text-[10px]" : "text-foreground"
-                              )}
-                            >
-                              {format(day, "d")}
-                            </span>
-                          </div>
-
-                          {/* Desktop: show full event list buttons */}
-                          <div className="hidden md:block space-y-1 mt-1 max-h-[60px] overflow-y-auto">
-                            {dayEvs.map((ev) => {
-                              const config = STATUS_CONFIG[ev.booking.status]
-                              return (
-                                <button
-                                  key={ev.id}
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    openDetail(ev.booking)
-                                  }}
-                                  className={cn(
-                                    "w-full text-left text-[9px] font-semibold text-white px-1.5 py-0.5 rounded-sm flex items-center gap-1 truncate cursor-pointer",
-                                    config ? config.dot : "bg-primary"
-                                  )}
-                                >
-                                  {ev.booking.room_details?.room_number || "—"} · {ev.booking.guest_details?.full_name?.split(" ")[0]}
-                                </button>
-                              )
-                            })}
-                          </div>
-
-                          {/* Mobile: show small indicator dots */}
-                          {dayEvs.length > 0 && (
-                            <div className="flex justify-center gap-0.5 mt-0.5 md:hidden">
-                              {dayEvs.slice(0, 3).map((ev) => (
-                                <span
-                                  key={ev.id}
-                                  className={cn(
-                                    "w-1.5 h-1.5 rounded-full shrink-0",
-                                    STATUS_CONFIG[ev.booking.status]?.dot || "bg-primary"
-                                  )}
-                                />
-                              ))}
-                              {dayEvs.length > 3 && (
-                                <span className="text-[7px] leading-none text-muted-foreground font-bold">+</span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })
-                  })()}
-                </div>
-
-                {/* Mobile Selected Day Agenda list below the calendar */}
-                <div className="block md:hidden p-4 bg-muted/5 border-t border-border">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-                    Agenda for {format(currentDate, "MMMM d, yyyy")}
-                  </h3>
-                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                    {getDayEvents(currentDate).length > 0 ? (
-                      getDayEvents(currentDate).map((ev) => <EventCard key={ev.id} ev={ev} />)
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic py-6 text-center">
-                        No check-ins or check-outs scheduled for this day.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {/* ── Edit Booking Dialog ── */}
+        <BookingFormDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          mode="edit"
+          booking={selectedBooking}
+          getToken={getToken}
+          onSubmit={handleEditBooking}
+        />
       </div>
-
-      {/* ── Booking Detail Side Drawer ── */}
-      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent className="sm:max-w-md w-full overflow-y-auto">
-          {selectedBooking && (
-            <>
-              <SheetHeader className="pb-4 border-b border-border relative pr-8">
-                <div className="flex items-center justify-between gap-4">
-                  <Badge className={cn("text-xs font-bold border-none shrink-0", STATUS_CONFIG[selectedBooking.status]?.bg, STATUS_CONFIG[selectedBooking.status]?.text)}>
-                    {STATUS_CONFIG[selectedBooking.status]?.label}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground font-mono truncate max-w-[180px] sm:max-w-none" title={selectedBooking.booking_id}>
-                    #{selectedBooking.booking_id}
-                  </span>
-                </div>
-                <SheetTitle className="text-lg font-bold text-foreground pt-2">
-                  {selectedBooking.guest_details?.full_name || "Guest Reservation"}
-                </SheetTitle>
-                <SheetDescription className="text-xs text-muted-foreground">
-                  Quick action drawer to manage check-ins, check-outs, or cancellations.
-                </SheetDescription>
-              </SheetHeader>
-
-              {/* Booking & Guest Info details list */}
-              <div className="space-y-6 py-6">
-                {/* Guest Profile Section */}
-                <div className="space-y-3">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <User className="h-4 w-4" /> Guest Contact
-                  </h3>
-                  <div className="rounded-lg border border-border p-3 space-y-2.5 bg-muted/15 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Full Name</span>
-                      <span className="font-semibold text-foreground">{selectedBooking.guest_details?.full_name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Phone Number</span>
-                      <span className="font-medium text-foreground">{selectedBooking.guest_details?.phone_number}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Email Address</span>
-                      <span className="font-medium text-foreground">{selectedBooking.guest_details?.email || "—"}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Stays & Pricing Info */}
-                <div className="space-y-3">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <Bed className="h-4 w-4" /> Booking Details
-                  </h3>
-                  <div className="rounded-lg border border-border p-3 space-y-2.5 bg-muted/15 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Room Assigned</span>
-                      <span className="font-semibold text-foreground">
-                        Room {selectedBooking.room_details?.room_number} ({selectedBooking.room_details?.room_type})
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Check-In Date</span>
-                      <span className="font-medium text-foreground">{selectedBooking.check_in}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Check-Out Date</span>
-                      <span className="font-medium text-foreground">{selectedBooking.check_out}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Number of Guests</span>
-                      <span className="font-medium text-foreground">
-                        {selectedBooking.adults} Adults {selectedBooking.children > 0 ? `, ${selectedBooking.children} Children` : ""}
-                      </span>
-                    </div>
-                    <div className="flex justify-between border-t border-border/40 pt-2">
-                      <span className="text-muted-foreground font-semibold">Total Price</span>
-                      <span className="font-bold text-sm text-foreground">${Number(selectedBooking.total_price).toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons in Sheet Footer */}
-              <SheetFooter className="border-t border-border pt-4">
-                <div className="flex flex-col gap-2.5 w-full">
-                  {/* Primary actions (Check-In / Check-Out) */}
-                  {(selectedBooking.status === "PENDING" || selectedBooking.status === "CONFIRMED") && (
-                    <Button
-                      onClick={handleCheckIn}
-                      disabled={actionLoading}
-                      className="cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white gap-2 w-full py-2.5 h-11 text-sm font-semibold"
-                    >
-                      {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
-                      Check-In Guest
-                    </Button>
-                  )}
-
-                  {selectedBooking.status === "CHECKED_IN" && (
-                    <Button
-                      onClick={handleCheckOut}
-                      disabled={actionLoading}
-                      className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white gap-2 w-full py-2.5 h-11 text-sm font-semibold"
-                    >
-                      {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-                      Check-Out Guest
-                    </Button>
-                  )}
-
-                  {/* Secondary actions: Edit & Cancel (side-by-side or stacked) */}
-                  <div className="flex gap-2 w-full">
-                    <Button
-                      variant="outline"
-                      onClick={() => setEditOpen(true)}
-                      disabled={actionLoading}
-                      className="cursor-pointer gap-1.5 flex-1 h-10"
-                    >
-                      <Edit className="h-4 w-4" />
-                      Edit Details
-                    </Button>
-
-                    {(selectedBooking.status === "PENDING" || selectedBooking.status === "CONFIRMED") && (
-                      <Button
-                        variant="outline"
-                        onClick={handleCancel}
-                        disabled={actionLoading}
-                        className="cursor-pointer text-amber-600 border-amber-200 hover:bg-amber-50 hover:text-amber-700 flex-1 h-10"
-                      >
-                        Cancel Booking
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* Delete Action (Admin Only) */}
-                  {isAdmin && (
-                    <Button
-                      variant="destructive"
-                      onClick={() => setDeleteConfirmOpen(true)}
-                      disabled={actionLoading}
-                      className="cursor-pointer gap-1.5 w-full h-10 mt-1"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete Reservation
-                    </Button>
-                  )}
-                </div>
-              </SheetFooter>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
-
-      {/* ── Delete Confirmation Dialog ── */}
-      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-destructive flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 shrink-0" />
-              Confirm Permanently Delete
-            </DialogTitle>
-            <DialogDescription className="text-sm pt-1">
-              Are you sure you want to permanently delete this booking for{" "}
-              <strong>{selectedBooking?.guest_details?.full_name}</strong>? This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-4">
-            <Button
-              variant="outline"
-              onClick={() => setDeleteConfirmOpen(false)}
-              disabled={actionLoading}
-              className="cursor-pointer"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={actionLoading}
-              className="cursor-pointer"
-            >
-              {actionLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Delete Permanently
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Booking Dialog Add / Edit forms ── */}
-      <BookingFormDialog
-        open={addOpen}
-        onOpenChange={setAddOpen}
-        mode="add"
-        getToken={getToken}
-        onSubmit={handleAddBooking}
-      />
-
-      <BookingFormDialog
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        mode="edit"
-        booking={selectedBooking}
-        getToken={getToken}
-        onSubmit={handleEditBooking}
-      />
-    </div>
+    </BaseLayout>
   )
 }

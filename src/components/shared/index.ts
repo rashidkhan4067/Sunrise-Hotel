@@ -16,4 +16,8 @@ export { DataTable } from "./data-table"
 export type { ColumnDef } from "./data-table"
 export { FilterBar } from "./filter-bar"
 export type { SelectFilter, FilterOption } from "./filter-bar"
+export { PageHeader } from "./page-header"
+export { SettingsTabs } from "./settings-tabs"
+
+
 

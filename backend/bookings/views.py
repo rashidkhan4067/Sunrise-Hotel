@@ -11,10 +11,19 @@ from accounts.permissions import IsHotelStaff
 class BookingViewSet(viewsets.ModelViewSet):
     """ViewSet for managing hotel room bookings."""
     serializer_class = BookingSerializer
-    permission_classes = [permissions.IsAuthenticated, IsHotelStaff]
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve', 'create', 'cancel']:
+            return [permissions.IsAuthenticated()]
+        return [permissions.IsAuthenticated(), IsHotelStaff()]
 
     def get_queryset(self):
-        queryset = Booking.objects.all()
+        user = self.request.user
+        if user.role in ['ADMIN', 'RECEPTIONIST']:
+            queryset = Booking.objects.all()
+        else:
+            queryset = Booking.objects.filter(guest__email__iexact=user.email)
+
         search = self.request.query_params.get('search')
         if search:
             from django.db.models import Q
@@ -101,6 +110,15 @@ class BookingViewSet(viewsets.ModelViewSet):
     def cancel(self, request, pk=None):
         """Action to cancel a booking."""
         booking = self.get_object()
+        
+        user = request.user
+        if user.role not in ['ADMIN', 'RECEPTIONIST']:
+            is_owner = (booking.guest.email and booking.guest.email.lower() == user.email.lower())
+            if not is_owner:
+                return Response(
+                    {"error": "You do not have permission to cancel this booking."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
         
         if booking.status in ['CHECKED_OUT', 'CANCELLED']:
             return Response(

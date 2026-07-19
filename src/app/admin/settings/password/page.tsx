@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { BaseLayout } from "@/components/layouts/base-layout"
+import { SettingsTabs } from "@/components/shared"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -96,6 +97,7 @@ export default function PasswordSettingsPage() {
   return (
     <BaseLayout title="Security Settings" description="Change your password to keep your account secure.">
       <div className="px-4 lg:px-6 max-w-2xl space-y-6">
+        <SettingsTabs />
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Card>
@@ -109,7 +111,6 @@ export default function PasswordSettingsPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4 pt-0">
-                
                 {/* Current Password */}
                 <FormField
                   control={form.control}

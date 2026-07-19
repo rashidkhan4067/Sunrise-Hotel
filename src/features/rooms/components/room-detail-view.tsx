@@ -7,7 +7,8 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { RoomStatusBadge } from "@/components/shared"
 import type { Room } from "../types"
-import { Bed, Users, DollarSign, Calendar, ClipboardList } from "lucide-react"
+import { formatCurrency } from "@/utils/format"
+import { Bed, Users, Calendar, ClipboardList } from "lucide-react"
 
 interface RoomDetailViewProps {
   open: boolean
@@ -52,9 +53,8 @@ export function RoomDetailView({ open, onOpenChange, room }: RoomDetailViewProps
               </div>
               <div>
                 <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Price / Night</span>
-                <span className="font-semibold text-foreground text-sm flex items-center">
-                  <DollarSign className="h-3.5 w-3.5" />
-                  {Number(room.price_per_night).toFixed(2)}
+                <span className="font-semibold text-foreground text-sm">
+                  {formatCurrency(room.price_per_night)}
                 </span>
               </div>
             </div>
@@ -143,7 +143,7 @@ export function RoomDetailView({ open, onOpenChange, room }: RoomDetailViewProps
                         <div className="capitalize truncate text-muted-foreground">
                           {hist.status.toLowerCase().replace("_", " ")}
                         </div>
-                        <div className="text-right font-medium text-foreground">${hist.total_price.toFixed(2)}</div>
+                        <div className="text-right font-medium text-foreground">{formatCurrency(hist.total_price)}</div>
                       </div>
                     ))}
                   </div>

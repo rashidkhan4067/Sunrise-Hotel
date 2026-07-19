@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { Button } from "@/components/ui/button"
 import { StatCard } from "@/components/stat-card"
@@ -27,10 +27,13 @@ import { useAuth } from "@/contexts/auth-context"
 import { Plus, Download, RefreshCw, ChevronLeft, ChevronRight, Bed, CheckCircle2, KeyRound, Wrench, TrendingUp, MoreHorizontal, Edit, Trash2, ShieldAlert, BadgeInfo } from "lucide-react"
 import { ErrorBanner, RoomStatusBadge, DataTable, FilterBar, type ColumnDef } from "@/components/shared"
 import { toast } from "sonner"
+import { formatCurrency, capitalize, downloadCSV } from "@/utils/format"
+import { isAdminRole } from "@/lib/utils"
 
 export function RoomManagementPage() {
   const { getToken } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   // Data States
   const [rooms, setRooms] = useState<Room[]>([])
@@ -44,10 +47,13 @@ export function RoomManagementPage() {
   const pageSize = 10
 
   // Filters & Sorting States
-  const [search, setSearch] = useState("")
+  const [search, setSearch] = useState(() => searchParams.get("search") || "")
   const [floorFilter, setFloorFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
-  const [statusFilter, setStatusFilter] = useState("all")
+  const [statusFilter, setStatusFilter] = useState(() => {
+    const s = searchParams.get("status")
+    return s ? s.toLowerCase() : "all"
+  })
   const [sortBy, setSortBy] = useState("room_number")
 
   // Dialog States
@@ -57,6 +63,17 @@ export function RoomManagementPage() {
 
   // Selection
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null)
+
+  useEffect(() => {
+    const statusVal = searchParams.get("status")
+    if (statusVal !== null) {
+      setStatusFilter(statusVal.toLowerCase())
+    }
+    const searchVal = searchParams.get("search")
+    if (searchVal !== null) {
+      setSearch(searchVal)
+    }
+  }, [searchParams])
 
   // Load Rooms & Summary Data
   const loadData = async (pageToLoad = currentPage) => {
@@ -77,7 +94,7 @@ export function RoomManagementPage() {
           search: search || undefined,
           floor: floorFilter !== "all" ? floorFilter : undefined,
           room_type: typeFilter !== "all" ? typeFilter : undefined,
-          status: statusFilter !== "all" ? statusFilter : undefined,
+          status: statusFilter !== "all" ? statusFilter.toUpperCase() : undefined,
           ordering: sortBy,
         })
 
@@ -93,7 +110,6 @@ export function RoomManagementPage() {
         }
       }
     } catch (err: any) {
-      console.error(err)
       setError(err?.message || "Failed to load rooms list")
       toast.error(err?.message || "Failed to load rooms list")
     } finally {
@@ -163,7 +179,6 @@ export function RoomManagementPage() {
   }
 
   const handleArchiveRoom = async (room: Room) => {
-    if (!confirm(`Are you sure you want to archive Room ${room.room_number}?`)) return
     try {
       const token = await getToken()
       if (!token) return
@@ -186,33 +201,14 @@ export function RoomManagementPage() {
       toast.error("No room data to export")
       return
     }
-    const headers = ["Room Number", "Type", "Floor", "Capacity", "Price Per Night", "Status"]
-    const rows = rooms.map(r => [
-      r.room_number,
-      r.room_type,
-      r.floor,
-      r.capacity,
-      r.price_per_night,
-      r.status
-    ])
-    
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + [headers.join(","), ...rows.map(e => e.join(","))].join("\n")
-
-    const encodedUri = encodeURI(csvContent)
-    const link = document.createElement("a")
-    link.setAttribute("href", encodedUri)
-    link.setAttribute("download", `rooms_export_${new Date().toISOString().split("T")[0]}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    downloadCSV(
+      ["Room Number", "Type", "Floor", "Capacity", "Price Per Night", "Status"],
+      rooms.map(r => [r.room_number, r.room_type, r.floor, r.capacity, r.price_per_night, r.status]),
+      "rooms_export"
+    )
     toast.success("Rooms list exported successfully")
   }
 
-  const getTypeLabel = (type: string) => {
-    if (!type) return "—"
-    return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()
-  }
 
   const columns: ColumnDef<Room>[] = [
     {
@@ -230,7 +226,7 @@ export function RoomManagementPage() {
             </Link>
           </span>
           <span className="text-xs text-muted-foreground md:hidden mt-0.5">
-            {getTypeLabel(room.room_type)} · ${Number(room.price_per_night).toFixed(2)}/night
+            {capitalize(room.room_type)} · {formatCurrency(room.price_per_night)}/night
           </span>
         </div>
       ),
@@ -238,7 +234,7 @@ export function RoomManagementPage() {
     {
       header: "Type",
       hideOnMobile: true,
-      cell: (room) => <span className="text-muted-foreground">{getTypeLabel(room.room_type)}</span>,
+      cell: (room) => <span className="text-muted-foreground">{capitalize(room.room_type)}</span>,
     },
     {
       header: "Floor",
@@ -254,7 +250,7 @@ export function RoomManagementPage() {
       header: "Price / Night",
       className: "text-right",
       hideOnMobile: true,
-      cell: (room) => <span className="font-medium text-foreground">${Number(room.price_per_night).toFixed(2)}</span>,
+      cell: (room) => <span className="font-medium text-foreground">{formatCurrency(room.price_per_night)}</span>,
     },
     {
       header: "Status",
@@ -517,12 +513,11 @@ export function RoomManagementPage() {
             </div>
           </div>
         )}
-
         {/* Dialogs */}
         <AddRoomDialog
           open={addOpen}
           onOpenChange={setAddOpen}
-          onSubmit={handleCreateRoom}
+          onAdd={handleCreateRoom}
         />
 
         {selectedRoom && (
@@ -531,14 +526,14 @@ export function RoomManagementPage() {
               open={editOpen}
               onOpenChange={setEditOpen}
               room={selectedRoom}
-              onSubmit={handleUpdateRoom}
+              onEdit={handleUpdateRoom}
             />
 
             <ChangeStatusDialog
               open={statusOpen}
               onOpenChange={setStatusOpen}
               room={selectedRoom}
-              onSubmit={handleChangeStatus}
+              onStatusChange={handleChangeStatus}
             />
           </>
         )}

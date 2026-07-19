@@ -15,6 +15,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart"
 import type { ReportRow } from "../types"
+import { formatCurrency } from "@/utils/format"
+import { useAppStore } from "@/store/use-app-store"
 
 interface Props {
   rows: ReportRow[]
@@ -56,13 +58,14 @@ function ChartSkeleton() {
 
 // Smart revenue formatter for Y-axis ticks
 function formatYAxisRevenue(value: number): string {
+  const currency = useAppStore.getState().hotelInfo?.currency || "USD"
   if (value >= 1000000) {
-    return `$${(value / 1000000).toFixed(1)}M`
+    return `${currency} ${(value / 1000000).toFixed(1)}M`
   }
   if (value >= 1000) {
-    return `$${(value / 1000).toFixed(1)}k`
+    return `${currency} ${(value / 1000).toFixed(1)}k`
   }
-  return `$${value}`
+  return `${currency} ${value}`
 }
 
 // ─── Monthly Revenue Line Chart ─────────────────────────────────
@@ -102,7 +105,7 @@ function RevenueLineChart({ rows }: { rows: ReportRow[] }) {
             className="text-muted-foreground"
           />
           <Tooltip
-            formatter={(v: number | undefined) => [`$${(v ?? 0).toLocaleString()}`, "Revenue"]}
+            formatter={(v: number | undefined) => [formatCurrency(v ?? 0), "Revenue"]}
             contentStyle={tooltipStyle}
             cursor={{ stroke: "hsl(var(--border))" }}
           />

@@ -10,7 +10,7 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useAuth()
 
-  console.log("[ProtectedRoute]", { isAuthenticated, isLoading })
+  
 
   if (isLoading) {
     return <RouteProgress />

@@ -1,16 +1,16 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { BookingStatusBadge } from "@/components/shared"
-import { formatDate } from "@/utils/format"
+import { formatDate, formatCurrency } from "@/utils/format"
 import type { Guest } from "../types"
 import { useEffect, useState } from "react"
 import { fetchGuestBookings } from "../api"
 import { User, Phone, Mail, Loader2, AlertCircle } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
 
 interface GuestDetailViewProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   guest: Guest | null
-  token: string
 }
 
 interface MiniBooking {
@@ -29,20 +29,43 @@ interface MiniBooking {
 
 
 
-export function GuestDetailView({ open, onOpenChange, guest, token }: GuestDetailViewProps) {
+export function GuestDetailView({ open, onOpenChange, guest }: GuestDetailViewProps) {
+  const { getToken } = useAuth()
   const [bookings, setBookings] = useState<MiniBooking[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open || !guest) return
-    setLoading(true)
-    setError(null)
-    fetchGuestBookings(guest.id, token)
-      .then((data) => setBookings(Array.isArray(data) ? data : (data.results || [])))
-      .catch((err) => setError(err?.message || "Failed to load booking history"))
-      .finally(() => setLoading(false))
-  }, [open, guest, token])
+    let active = true
+
+    async function loadHistory() {
+      setLoading(true)
+      setError(null)
+      try {
+        const token = await getToken()
+        if (!token) return
+        const data = await fetchGuestBookings(guest.id, token)
+        if (active) {
+          setBookings(Array.isArray(data) ? data : (data.results || []))
+        }
+      } catch (err: any) {
+        if (active) {
+          setError(err?.message || "Failed to load booking history")
+        }
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadHistory()
+
+    return () => {
+      active = false
+    }
+  }, [open, guest, getToken])
 
   if (!guest) return null
 
@@ -129,7 +152,7 @@ export function GuestDetailView({ open, onOpenChange, guest, token }: GuestDetai
                     <div className="flex items-center gap-2">
                       <BookingStatusBadge status={booking.status} />
                       <span className="font-semibold text-foreground text-right min-w-[50px]">
-                        ${Number(booking.total_price).toFixed(0)}
+                        {formatCurrency(booking.total_price)}
                       </span>
                     </div>
                   </div>

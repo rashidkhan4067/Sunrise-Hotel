@@ -42,3 +42,12 @@ export function getInitials(name: string): string {
   }
   return cleanName.slice(0, 2).toUpperCase()
 }
+
+/**
+ * Check if a role string represents an admin role.
+ * Handles all role string variants used across the app.
+ */
+export function isAdminRole(role: string | null | undefined): boolean {
+  if (!role) return false
+  return role === "org:admin" || role === "Admin" || role === "ADMIN"
+}

@@ -29,18 +29,19 @@ import {
   updateGuest,
   deleteGuest,
 } from "../api"
+import { isAdminRole } from "@/lib/utils"
+import { formatDate, downloadCSV } from "@/utils/format"
 
 export function GuestManagementPage() {
   const { getToken, role: authRole } = useAuth()
   const role = authRole || "org:member"
   const [searchParams] = useSearchParams()
 
-  // ─── State ───────────────────────────────────
+  // ─── State ───────────────────────────────────────────
   const [guests, setGuests] = useState<Guest[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
-  const [authToken, setAuthToken] = useState<string>("")
 
   // Filters
   const [search, setSearch] = useState("")
@@ -68,7 +69,6 @@ export function GuestManagementPage() {
     try {
       const token = await getToken()
       if (token) {
-        setAuthToken(token)
         const data = await fetchGuests(token)
         setGuests(data)
       } else {
@@ -156,47 +156,30 @@ export function GuestManagementPage() {
     }
   }
 
-  // ─── Export CSV ─────────────────────────────
+  // ─── Export CSV ────────────────────────────────────
   function handleExportCSV() {
     if (filtered.length === 0) {
       toast.error("No filtered records to export")
       return
     }
-    const headers = ["ID", "Full Name", "Phone", "Email", "Document ID", "Status", "Registered At"]
-    const rows = filtered.map((g) => [
-      g.id,
-      g.full_name,
-      g.phone_number,
-      g.email || "",
-      g.document_number,
-      g.is_active ? "Active" : "Inactive",
-      g.created_at ? new Date(g.created_at).toLocaleDateString() : "",
-    ])
-    
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [headers.join(","), ...rows.map((e) => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n")
-      
-    const encodedUri = encodeURI(csvContent)
-    const link = document.createElement("a")
-    link.setAttribute("href", encodedUri)
-    link.setAttribute("download", `guests_export_${new Date().toISOString().split("T")[0]}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    downloadCSV(
+      ["ID", "Full Name", "Phone", "Email", "Document ID", "Status", "Registered At"],
+      filtered.map((g) => [
+        g.id,
+        g.full_name,
+        g.phone_number,
+        g.email || "",
+        g.document_number,
+        g.is_active ? "Active" : "Inactive",
+        g.created_at ? new Date(g.created_at).toLocaleDateString() : "",
+      ]),
+      "guests_export"
+    )
     toast.success("Guest list exported successfully")
   }
 
-  const isAdmin = role === "org:admin" || role === "Admin" || role === "ADMIN"
+  const isAdmin = isAdminRole(role)
 
-  function formatGuestDate(dateStr?: string) {
-    if (!dateStr) return "—"
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    })
-  }
 
   const guestColumns: ColumnDef<Guest>[] = [
     {
@@ -268,7 +251,7 @@ export function GuestManagementPage() {
     {
       header: "Registered",
       hideOnMobile: true,
-      cell: (guest) => <span className="text-xs text-muted-foreground">{formatGuestDate(guest.created_at)}</span>,
+      cell: (guest) => <span className="text-xs text-muted-foreground">{formatDate(guest.created_at)}</span>,
     },
     {
       header: "",
@@ -457,7 +440,6 @@ export function GuestManagementPage() {
           open={detailOpen}
           onOpenChange={setDetailOpen}
           guest={selected}
-          token={authToken}
         />
 
         <DeleteGuestDialog

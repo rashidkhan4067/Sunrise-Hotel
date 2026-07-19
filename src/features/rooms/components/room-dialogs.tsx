@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useAppStore } from "@/store/use-app-store"
 import {
   Dialog,
   DialogContent,
@@ -42,6 +43,7 @@ interface AddRoomDialogProps {
 
 export function AddRoomDialog({ open, onOpenChange, onAdd }: AddRoomDialogProps) {
   const [submitting, setSubmitting] = useState(false)
+  const currency = useAppStore((state) => state.hotelInfo.currency)
   const form = useForm<RoomFormValues>({
     resolver: zodResolver(roomFormSchema) as any,
     defaultValues: {
@@ -85,7 +87,7 @@ export function AddRoomDialog({ open, onOpenChange, onAdd }: AddRoomDialogProps)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Room</DialogTitle>
           <DialogDescription>
@@ -167,7 +169,7 @@ export function AddRoomDialog({ open, onOpenChange, onAdd }: AddRoomDialogProps)
                 name="price_per_night"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Price/Night ($)</FormLabel>
+                    <FormLabel>Price/Night ({currency})</FormLabel>
                     <FormControl>
                       <Input type="number" min="1" step="0.01" {...field} />
                     </FormControl>
@@ -252,6 +254,7 @@ interface EditRoomDialogProps {
 
 export function EditRoomDialog({ open, onOpenChange, room, onEdit }: EditRoomDialogProps) {
   const [submitting, setSubmitting] = useState(false)
+  const currency = useAppStore((state) => state.hotelInfo.currency)
   const form = useForm<RoomFormValues>({
     resolver: zodResolver(roomFormSchema) as any,
     defaultValues: {
@@ -295,7 +298,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onEdit }: EditRoomDia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Room Details</DialogTitle>
           <DialogDescription>
@@ -377,7 +380,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onEdit }: EditRoomDia
                 name="price_per_night"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Price/Night ($)</FormLabel>
+                    <FormLabel>Price/Night ({currency})</FormLabel>
                     <FormControl>
                       <Input type="number" min="1" step="0.01" {...field} />
                     </FormControl>

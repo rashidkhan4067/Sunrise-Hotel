@@ -15,31 +15,37 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { useCurrentUser } from "@/hooks/use-current-user"
+import { useAppStore } from "@/store/use-app-store"
 import {
   BRAND_CONFIG,
   adminNavGroups,
   receptionistNavGroups,
-  clientNavGroups,
+  guestNavGroups,
 } from "@/config/site-config"
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-  role?: "admin" | "receptionist" | "client"
+  role?: "admin" | "receptionist" | "guest"
 }
 
 export function AppSidebar({ role = "admin", ...props }: AppSidebarProps) {
   const user = useCurrentUser()
+  const hotelInfo = useAppStore((state) => state.hotelInfo)
 
-  const brand = role === "client" ? BRAND_CONFIG.client : BRAND_CONFIG.admin
+  const brand = {
+    name: role === "guest" ? BRAND_CONFIG.guest.name : (hotelInfo?.hotelName || BRAND_CONFIG.admin.name),
+    subName: role === "guest" ? BRAND_CONFIG.guest.subName : BRAND_CONFIG.admin.subName,
+    logoSize: role === "guest" ? BRAND_CONFIG.guest.logoSize : BRAND_CONFIG.admin.logoSize,
+  }
 
   const navGroups =
     role === "admin"
       ? adminNavGroups
       : role === "receptionist"
         ? receptionistNavGroups
-        : clientNavGroups
+        : guestNavGroups
 
   const dashboardUrl =
-    role === "client" ? "/client/dashboard" : "/admin/dashboard"
+    role === "guest" ? "/guest/dashboard" : "/admin/dashboard"
 
   return (
     <Sidebar {...props}>

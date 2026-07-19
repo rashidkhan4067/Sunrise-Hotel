@@ -13,14 +13,14 @@ import {
 } from "@/components/ui/sidebar"
 
 import { useDocumentTitle } from "@/hooks/use-document-title"
-import { DynamicBreadcrumbs } from "@/components/dynamic-breadcrumbs"
+import { PageHeader } from "@/components/shared"
 
 interface BaseLayoutProps {
   children: React.ReactNode
   title?: string
   description?: string
   actions?: React.ReactNode
-  role?: "admin" | "client"
+  role?: "admin" | "guest"
 }
 
 export function BaseLayout({ children, title, description, actions, role }: BaseLayoutProps) {
@@ -29,24 +29,7 @@ export function BaseLayout({ children, title, description, actions, role }: Base
   const location = useLocation()
 
   // Infer role based on URL prefix if not explicitly passed as prop
-  const activeRole = role || (location.pathname.startsWith("/client") ? "client" : "admin")
-
-  const headerContent = (
-    <div className="px-4 lg:px-6 flex flex-col gap-1.5">
-      <DynamicBreadcrumbs />
-      {title && (
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-            {description && (
-              <p className="text-muted-foreground">{description}</p>
-            )}
-          </div>
-          {actions && <div className="flex items-center gap-2">{actions}</div>}
-        </div>
-      )}
-    </div>
-  )
+  const activeRole = role || (location.pathname.startsWith("/guest") ? "guest" : "admin")
 
   return (
     <SidebarProvider
@@ -72,7 +55,7 @@ export function BaseLayout({ children, title, description, actions, role }: Base
             <div className="flex flex-1 flex-col">
               <div className="@container/main flex flex-1 flex-col gap-2">
                 <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-                  {headerContent}
+                  <PageHeader title={title} description={description} actions={actions} />
                   {children}
                 </div>
               </div>
@@ -87,7 +70,7 @@ export function BaseLayout({ children, title, description, actions, role }: Base
             <div className="flex flex-1 flex-col">
               <div className="@container/main flex flex-1 flex-col gap-2">
                 <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-                  {headerContent}
+                  <PageHeader title={title} description={description} actions={actions} />
                   {children}
                 </div>
               </div>

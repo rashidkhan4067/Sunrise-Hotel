@@ -43,7 +43,7 @@ export function LoginForm({
 
   React.useEffect(() => {
     if (isAuthenticated) {
-      const redirectPath = role === "org:admin" ? "/admin/dashboard" : "/client/dashboard"
+      const redirectPath = role === "org:admin" ? "/admin/dashboard" : "/guest/dashboard"
       navigate(redirectPath)
     }
   }, [isAuthenticated, navigate, role])
@@ -98,7 +98,7 @@ export function LoginForm({
       toast.success("Device verified successfully!", {
         description: "Welcome back to your dashboard panel.",
       })
-      const redirectPath = role === "org:admin" ? "/admin/dashboard" : "/client/dashboard"
+      const redirectPath = role === "org:admin" ? "/admin/dashboard" : "/guest/dashboard"
       setTimeout(() => navigate(redirectPath), 500)
     } catch (err: any) {
       console.error("Verification Error:", err)

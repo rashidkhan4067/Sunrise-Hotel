@@ -4,11 +4,13 @@ from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 import os
+import logging
 import requests
 from django.conf import settings
 from .serializers import UserSerializer
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
@@ -20,13 +22,38 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
         return self.request.user
 
     def perform_update(self, serializer):
+        old_email = self.request.user.email
         email = serializer.validated_data.get('email')
         if email:
             admin_emails = os.getenv('ADMIN_EMAILS') or os.getenv('VITE_ADMIN_EMAILS') or ''
             admin_list = [e.strip().lower() for e in admin_emails.split(',') if e.strip()]
             if email.lower() in admin_list:
                 serializer.validated_data['role'] = 'ADMIN'
-        serializer.save()
+        user = serializer.save()
+        
+        # Automatically sync the guest profile name and email if this is a CLIENT user
+        if user.role == 'CLIENT':
+            try:
+                from guests.models import Guest
+                full_name = f"{user.first_name} {user.last_name}".strip()
+                guests = Guest.objects.filter(email__iexact=old_email)
+                if guests.exists():
+                    guests.update(
+                        full_name=full_name or 'Guest User',
+                        email=user.email
+                    )
+                else:
+                    Guest.objects.get_or_create(
+                        email=user.email,
+                        defaults={
+                            'full_name': full_name or 'Guest User',
+                            'phone_number': user.phone or '',
+                            'document_number': 'PENDING',
+                            'is_active': True
+                        }
+                    )
+            except Exception:
+                pass
 
 
 class ClerkUsersListView(APIView):
@@ -37,16 +64,17 @@ class ClerkUsersListView(APIView):
         secret_key = os.getenv('CLERK_SECRET_KEY') or getattr(settings, 'CLERK_SECRET_KEY', '')
         if not secret_key:
             # Fallback: List local database users who logged in via Clerk (clerk_id is set)
-            users = User.objects.exclude(clerk_id__isnull=True).exclude(clerk_id='')
+            users = User.objects.exclude(clerk_id__isnull=True).exclude(clerk_id='').exclude(role='CLIENT')
             data = []
             for u in users:
+                role_display = 'Admin' if u.role == 'ADMIN' else 'Receptionist'
                 data.append({
                     'id': u.clerk_id,
                     'name': f"{u.first_name} {u.last_name}".strip() or (u.email.split('@')[0] if u.email else 'Clerk User'),
                     'email': u.email or '',
                     'avatar': '',
                     'phone': u.phone or '',
-                    'role': 'Admin' if u.role == 'ADMIN' else 'Receptionist',
+                    'role': role_display,
                     'status': 'Active' if u.is_active else 'Inactive',
                     'joinedDate': u.date_joined.strftime('%Y-%m-%d') if u.date_joined else '',
                     'lastLogin': u.last_login.strftime('%Y-%m-%d') if u.last_login else '',
@@ -70,11 +98,22 @@ class ClerkUsersListView(APIView):
                     last_name = cu.get('last_name') or ''
                     
                     # Resolve role from public metadata
-                    role = cu.get('public_metadata', {}).get('role', 'Receptionist')
+                    role = cu.get('public_metadata', {}).get('role', 'Client')
+                    
+                    # Check ADMIN_EMAILS fallback
+                    admin_emails_env = os.getenv('ADMIN_EMAILS') or os.getenv('VITE_ADMIN_EMAILS') or ''
+                    admin_list = [e.strip().lower() for e in admin_emails_env.split(',') if e.strip()]
+                    if email and email.lower() in admin_list:
+                        role = 'ADMIN'
+                        
                     role_upper = role.upper()
                     
-                    # Ensure only Admin and Receptionist roles are returned
-                    if role_upper not in ['ADMIN', 'RECEPTIONIST']:
+                    if role_upper == 'ADMIN':
+                        role_display = 'Admin'
+                    elif role_upper == 'RECEPTIONIST':
+                        role_display = 'Receptionist'
+                    else:
+                        # Skip guest/client accounts in the staff management list
                         continue
                         
                     phone_numbers = cu.get('phone_numbers', [])
@@ -86,7 +125,7 @@ class ClerkUsersListView(APIView):
                         'email': email,
                         'avatar': cu.get('image_url') or '',
                         'phone': phone,
-                        'role': 'Admin' if role_upper == 'ADMIN' else 'Receptionist',
+                        'role': role_display,
                         'status': 'Active',
                         'joinedDate': new_date_str(cu.get('created_at')),
                         'lastLogin': new_date_str(cu.get('last_sign_in_at')),
@@ -217,7 +256,7 @@ class UserDetailView(APIView):
                 try:
                     requests.patch(f'https://api.clerk.com/v1/users/{user.clerk_id}', headers=headers, json=clerk_payload)
                 except Exception as e:
-                    print("Clerk update failed:", str(e))
+                    logger.warning("Clerk update failed: %s", str(e))
 
             user = serializer.save()
             return Response({
@@ -249,7 +288,7 @@ class UserDetailView(APIView):
             try:
                 requests.delete(f'https://api.clerk.com/v1/users/{user.clerk_id}', headers=headers)
             except Exception as e:
-                print("Clerk delete failed:", str(e))
+                logger.warning("Clerk delete failed: %s", str(e))
                 
         user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -280,7 +319,7 @@ class UserResetPasswordView(APIView):
             try:
                 requests.patch(f'https://api.clerk.com/v1/users/{user.clerk_id}', headers=headers, json={'password': password})
             except Exception as e:
-                print("Clerk password update failed:", str(e))
+                logger.warning("Clerk password update failed: %s", str(e))
 
         user.set_password(password)
         user.save()

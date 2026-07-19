@@ -7,6 +7,7 @@ import {
   Users,
   BarChart3,
   Settings,
+  User,
   type LucideIcon,
 } from "lucide-react"
 
@@ -32,7 +33,7 @@ export const BRAND_CONFIG = {
     subName: "Management Console",
     logoSize: 24,
   },
-  client: {
+  guest: {
     name: "SunRise Hotel",
     subName: "Guest Portal",
     logoSize: 24,
@@ -159,19 +160,29 @@ export const receptionistNavGroups: NavGroup[] = [
   },
 ]
 
-// ─── Client Navigation ──────────────────────────────────────────
+// ─── Guest Navigation ──────────────────────────────────────────
 //
 // Guest portal — separate product, separate nav.
-// Do not reuse the admin sidebar for client users.
+// Do not reuse the admin sidebar for guest users.
 
-export const clientNavGroups: NavGroup[] = [
+export const guestNavGroups: NavGroup[] = [
   {
     label: "My Stay",
     items: [
       {
         title: "Dashboard",
-        url: "/client/dashboard",
+        url: "/guest/dashboard",
         icon: LayoutDashboard,
+      },
+      {
+        title: "My Reservations",
+        url: "/guest/bookings",
+        icon: ClipboardList,
+      },
+      {
+        title: "My Profile",
+        url: "/guest/settings/user",
+        icon: User,
       },
     ],
   },

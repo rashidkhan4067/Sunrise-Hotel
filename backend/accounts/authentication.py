@@ -16,17 +16,14 @@ class ClerkJWTAuthentication(authentication.BaseAuthentication):
     def authenticate(self, request):
         auth_header = request.headers.get('Authorization')
         if not auth_header:
-            print("[ClerkAuthDebug] No Authorization header found in request.")
             return None
 
         try:
             parts = auth_header.split()
             if len(parts) != 2 or parts[0].lower() != 'bearer':
-                print(f"[ClerkAuthDebug] Invalid Authorization header format: {auth_header}")
                 return None
             token = parts[1]
-        except Exception as e:
-            print(f"[ClerkAuthDebug] Exception splitting auth header: {str(e)}")
+        except Exception:
             return None
 
         # Verify the Clerk token
@@ -36,18 +33,21 @@ class ClerkJWTAuthentication(authentication.BaseAuthentication):
 
         # Retrieve or create user profile based on payload
         user = self.get_or_create_user(payload)
+
+        # Update last_login to current time to track active console session
+        from django.utils import timezone
+        user.last_login = timezone.now()
+        user.save(update_fields=['last_login'])
+
         return (user, token)
 
     def verify_token(self, token):
         pem_key = self.get_public_key()
         if not pem_key:
-            print("[ClerkAuthDebug] Clerk PEM Public Key is missing or not configured in settings.")
             raise exceptions.AuthenticationFailed('Clerk PEM Public Key is not configured on the backend.')
 
         try:
             # Decode and verify the signature using RS256
-            # Clerk tokens do not enforce audience verification in standard sessions by default, 
-            # but we ignore audience to ensure maximum compatibility.
             payload = jwt.decode(
                 token,
                 pem_key,
@@ -57,13 +57,10 @@ class ClerkJWTAuthentication(authentication.BaseAuthentication):
             )
             return payload
         except jwt.ExpiredSignatureError:
-            print("[ClerkAuthDebug] Token has expired (ExpiredSignatureError).")
             raise exceptions.AuthenticationFailed('Clerk token has expired.')
         except jwt.InvalidTokenError as e:
-            print(f"[ClerkAuthDebug] Invalid token error: {str(e)}")
             raise exceptions.AuthenticationFailed(f'Invalid Clerk token: {str(e)}')
         except Exception as e:
-            print(f"[ClerkAuthDebug] Token verification exception: {str(e)}")
             raise exceptions.AuthenticationFailed(f'Clerk token verification failed: {str(e)}')
 
     def get_public_key(self):
@@ -99,7 +96,10 @@ class ClerkJWTAuthentication(authentication.BaseAuthentication):
         else:
             role = None
 
-        if email and email.lower() == "rashidshafique.dev@gmail.com":
+        # Allow additional admin emails from environment variable
+        admin_emails_env = os.getenv('ADMIN_EMAILS', '')
+        admin_email_list = [e.strip().lower() for e in admin_emails_env.split(',') if e.strip()]
+        if email and email.lower() in admin_email_list:
             role = 'ADMIN'
 
         first_name = payload.get('first_name') or payload.get('given_name') or ''
@@ -111,9 +111,11 @@ class ClerkJWTAuthentication(authentication.BaseAuthentication):
             # Sync user details if they changed in Clerk
             updated = False
             
-            # If the user's database email or the token email matches the single admin email
+            # If the user's database email or the token email matches admin email list
             user_email = user.email or email
-            if user_email and user_email.lower() == "rashidshafique.dev@gmail.com":
+            admin_emails_env = os.getenv('ADMIN_EMAILS', '')
+            admin_email_list = [e.strip().lower() for e in admin_emails_env.split(',') if e.strip()]
+            if user_email and user_email.lower() in admin_email_list:
                 role = 'ADMIN'
             
             if email and user.email != email:
@@ -134,6 +136,7 @@ class ClerkJWTAuthentication(authentication.BaseAuthentication):
             
             if updated:
                 user.save()
+            self.ensure_guest_profile(user, first_name, last_name)
             return user
         except User.DoesNotExist:
             pass
@@ -143,8 +146,10 @@ class ClerkJWTAuthentication(authentication.BaseAuthentication):
             try:
                 user = User.objects.get(email=email)
                 user.clerk_id = clerk_id
-                
-                if email.lower() == "rashidshafique.dev@gmail.com":
+
+                admin_emails_env = os.getenv('ADMIN_EMAILS', '')
+                admin_email_list = [e.strip().lower() for e in admin_emails_env.split(',') if e.strip()]
+                if email.lower() in admin_email_list:
                     role = 'ADMIN'
                 
                 final_role = role or user.role
@@ -156,6 +161,7 @@ class ClerkJWTAuthentication(authentication.BaseAuthentication):
                 if last_name and not user.last_name:
                     user.last_name = last_name
                 user.save()
+                self.ensure_guest_profile(user, first_name, last_name)
                 return user
             except User.DoesNotExist:
                 pass
@@ -165,7 +171,9 @@ class ClerkJWTAuthentication(authentication.BaseAuthentication):
             email = f"{clerk_id}@placeholder.sunrise.com"
 
         final_role = role or 'CLIENT'
-        if email.lower() == "rashidshafique.dev@gmail.com":
+        admin_emails_env = os.getenv('ADMIN_EMAILS', '')
+        admin_email_list = [e.strip().lower() for e in admin_emails_env.split(',') if e.strip()]
+        if email and email.lower() in admin_email_list:
             final_role = 'ADMIN'
 
         user = User.objects.create_user(
@@ -175,4 +183,31 @@ class ClerkJWTAuthentication(authentication.BaseAuthentication):
             first_name=first_name,
             last_name=last_name
         )
+        self.ensure_guest_profile(user, first_name, last_name)
         return user
+
+    def ensure_guest_profile(self, user, first_name, last_name):
+        if user.role == 'CLIENT' and user.email:
+            try:
+                from guests.models import Guest
+                full_name = f"{first_name} {last_name}".strip()
+                if not full_name:
+                    full_name = "Guest User"
+                
+                guest, created = Guest.objects.get_or_create(
+                    email=user.email,
+                    defaults={
+                        'full_name': full_name,
+                        'phone_number': '',
+                        'document_number': 'PENDING',
+                        'is_active': True
+                    }
+                )
+                if not created:
+                    # Sync name if it was empty or placeholder
+                    if not guest.full_name or guest.full_name.startswith('user_'):
+                        guest.full_name = full_name
+                        guest.save()
+            except Exception:
+                # Fail gracefully if tables are not migrated yet
+                pass

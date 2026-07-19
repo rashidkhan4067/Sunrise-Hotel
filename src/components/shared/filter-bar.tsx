@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Search, X, RotateCcw } from "lucide-react"
+import { Search, RotateCcw } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -51,9 +51,7 @@ export function FilterBar({
   children,
   className,
 }: FilterBarProps) {
-  // Determine grid columns dynamically based on number of fields
-  const totalItems = (search ? 1 : 0) + filters.length + (children ? 1 : 0)
-  
+
   return (
     <div className={cn(
       "border border-border/50 bg-gradient-to-b from-card to-card/95 p-4 rounded-xl shadow-2xs hover:shadow-xs transition-all duration-300",

@@ -27,8 +27,8 @@ export function DynamicBreadcrumbs() {
         {pathnames.map((value, index) => {
           const to = `/${pathnames.slice(0, index + 1).join("/")}`
           const isLast = index === pathnames.length - 1
-          const label = value.charAt(0).toUpperCase() + value.slice(1).replace(/-/g, " ")
-
+          let label = value.charAt(0).toUpperCase() + value.slice(1).replace(/-/g, " ")
+          if (value.toLowerCase() === "users") label = "Staff"
           return (
             <React.Fragment key={to}>
               <BreadcrumbSeparator />

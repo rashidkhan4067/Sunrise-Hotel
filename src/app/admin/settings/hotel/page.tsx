@@ -4,6 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { BaseLayout } from "@/components/layouts/base-layout"
+import { SettingsTabs } from "@/components/shared"
+import { useAppStore } from "@/store/use-app-store"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -44,55 +46,40 @@ type HotelFormValues = z.infer<typeof hotelFormSchema>
 
 export default function HotelSettingsPage() {
   const [saving, setSaving] = useState(false)
+  const hotelInfo = useAppStore((state) => state.hotelInfo)
+  const updateHotelInfo = useAppStore((state) => state.updateHotelInfo)
 
   const form = useForm<HotelFormValues>({
     resolver: zodResolver(hotelFormSchema) as any,
-    defaultValues: {
-      hotelName: "Sunrise Hotel & Suites",
-      phone: "+92 300 1234567",
-      email: "info@sunrisehotel.com",
-      address: "123 Sunset Boulevard, Sector G-11, Islamabad, Pakistan",
-      starRating: "5",
-      currency: "PKR",
-      taxRate: 16,
-      checkInTime: "14:00",
-      checkOutTime: "12:00",
-      gracePeriod: 60,
-    },
+    defaultValues: hotelInfo,
   })
 
   const control = form.control as any
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("pref-hotel-info")
-      if (stored) {
-        form.reset(JSON.parse(stored))
-      }
-    } catch (e) {
-      console.error("Failed to load hotel settings from localStorage", e)
+    if (hotelInfo) {
+      form.reset(hotelInfo)
     }
-  }, [form])
+  }, [hotelInfo, form])
 
   function onSubmit(values: HotelFormValues) {
     setSaving(true)
-    setTimeout(() => {
-      try {
-        localStorage.setItem("pref-hotel-info", JSON.stringify(values))
-        toast.success("Hotel settings updated!", {
-          description: "All profile details and guest policy settings have been saved successfully.",
-        })
-      } catch (err) {
-        toast.error("Failed to save hotel settings.")
-      } finally {
-        setSaving(false)
-      }
-    }, 800)
+    try {
+      updateHotelInfo(values)
+      toast.success("Hotel settings updated!", {
+        description: "All profile details and guest policy settings have been saved successfully.",
+      })
+    } catch (err) {
+      toast.error("Failed to save hotel settings.")
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
     <BaseLayout title="Hotel Information" description="Configure general hotel settings, contact details, and core booking parameters.">
       <div className="px-4 lg:px-6 max-w-4xl space-y-6">
+        <SettingsTabs />
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             
