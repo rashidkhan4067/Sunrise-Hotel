@@ -234,9 +234,9 @@ export function DataTable<T>({
 
       {/* Advanced Filter & Visibility Controls */}
       {showFilterBar && (
-        <div className="flex flex-wrap gap-4 items-end">
+        <div className="flex flex-col sm:flex-row gap-4 sm:items-end w-full">
           {filters?.map((filter) => (
-            <div key={filter.columnId} className="space-y-1 w-full max-w-[200px]">
+            <div key={filter.columnId} className="space-y-1.5 w-full sm:w-48">
               <Label htmlFor={filter.columnId} className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 {filter.label}
               </Label>
@@ -261,7 +261,7 @@ export function DataTable<T>({
           ))}
 
           {showColumnVisibility && (
-            <div className="space-y-1 w-full max-w-[200px] ml-auto">
+            <div className="space-y-1.5 w-full sm:w-48 sm:ml-auto">
               <Label htmlFor="column-visibility" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Columns
               </Label>

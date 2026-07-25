@@ -1,12 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { downloadCSV } from "@/utils/format"
+import { useAuth } from "@/contexts/auth-context"
 import { Plus, Calendar, Search, Download, Sparkles } from "lucide-react"
 import type { DashboardPayload, TodayCheckInOut } from "@/hooks/use-dashboard-data"
 
@@ -26,12 +27,16 @@ export function QuickActions({
   summary: DashboardPayload["summary"]
 }) {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const { role } = useAuth()
+  const prefix = pathname.startsWith("/receptionist") ? "/receptionist" : "/admin"
   const [searchQuery, setSearchQuery] = useState("")
+  const isAdmin = role === "org:admin"
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     if (searchQuery.trim()) {
-      navigate(`/admin/bookings?search=${encodeURIComponent(searchQuery.trim())}`)
+      navigate(`${prefix}/bookings?search=${encodeURIComponent(searchQuery.trim())}`)
     }
   }
 
@@ -113,11 +118,13 @@ export function QuickActions({
             <Plus className="h-3.5 w-3.5 text-primary" />
             Add Guest
           </Button>
-          <Button variant="outline" size="sm" className="h-9 text-xs justify-start gap-2 cursor-pointer border-border/80 hover:bg-muted/60 hover:text-primary transition-all duration-200" onClick={onAddRoom}>
-            <Plus className="h-3.5 w-3.5 text-primary" />
-            Add Room
-          </Button>
-          <Button variant="outline" size="sm" className="h-9 text-xs justify-start gap-2 cursor-pointer border-border/80 hover:bg-muted/60 hover:text-primary transition-all duration-200" onClick={() => navigate("/admin/calendar")}>
+          {isAdmin && (
+            <Button variant="outline" size="sm" className="h-9 text-xs justify-start gap-2 cursor-pointer border-border/80 hover:bg-muted/60 hover:text-primary transition-all duration-200" onClick={onAddRoom}>
+              <Plus className="h-3.5 w-3.5 text-primary" />
+              Add Room
+            </Button>
+          )}
+          <Button variant="outline" size="sm" className="h-9 text-xs justify-start gap-2 cursor-pointer border-border/80 hover:bg-muted/60 hover:text-primary transition-all duration-200" onClick={() => navigate(`${prefix}/calendar`)}>
             <Calendar className="h-3.5 w-3.5 text-primary" />
             Open Calendar
           </Button>

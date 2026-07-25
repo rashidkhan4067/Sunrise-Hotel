@@ -30,6 +30,7 @@ import {
   checkOutBooking,
   cancelBooking,
 } from "@/features/bookings/api"
+import { fetchRooms } from "@/features/rooms/api"
 import type { Booking } from "@/features/bookings/types"
 import { BookingFormDialog } from "@/features/bookings/components/booking-dialogs"
 import type { BookingFormValues } from "@/features/bookings/schemas"
@@ -41,6 +42,7 @@ import { isAdminRole } from "@/lib/utils"
 import type { CalendarEvent } from "../types"
 import { BookingDrawer } from "./booking-drawer"
 import { CalendarViews } from "./calendar-views"
+import { CalendarTimelineView } from "./calendar-timeline-view"
 
 // ─── Events Parser Helper ───────────────────
 function toEvents(bookings: Booking[]): CalendarEvent[] {
@@ -69,12 +71,13 @@ export function HotelCalendar() {
 
   // Data Loading
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [rooms, setRooms] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Navigation & Views
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [viewMode, setViewMode] = useState<"day" | "week" | "month">("week")
+  const [viewMode, setViewMode] = useState<"day" | "week" | "month" | "timeline">("week")
 
   // Filters
   const [search, setSearch] = useState("")
@@ -87,14 +90,19 @@ export function HotelCalendar() {
   const [addOpen, setAddOpen] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
 
-  // ─── Fetch Bookings ──────────────────────────
-  async function loadBookings() {
+  // ─── Fetch Bookings & Rooms ──────────────────────────
+  async function loadData() {
     setLoading(true)
     setError(null)
     try {
       const token = await getToken()
-      const data = await fetchBookings(token!)
-      setBookings(Array.isArray(data) ? data : (data as any)?.results || [])
+      if (!token) return
+      const [bData, rData] = await Promise.all([
+        fetchBookings(token),
+        fetchRooms(token).catch(() => []),
+      ])
+      setBookings(Array.isArray(bData) ? bData : (bData as any)?.results || [])
+      setRooms(Array.isArray(rData) ? rData : (rData as any)?.results || [])
     } catch (err: any) {
       setError(err?.message || "Failed to load bookings")
     } finally {
@@ -103,39 +111,70 @@ export function HotelCalendar() {
   }
 
   useEffect(() => {
-    loadBookings()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    loadData()
+  }, [getToken])
 
-  // ─── Filtered Bookings & Events ──────────────
+  // ─── Filtered Bookings & Events ────────────
   const filteredBookings = useMemo(() => {
     return bookings.filter((b) => {
       const q = search.toLowerCase()
-      const matchesSearch =
+      const matchSearch =
         !q ||
-        b.booking_id.toLowerCase().includes(q) ||
-        (b.guest_details?.full_name && b.guest_details.full_name.toLowerCase().includes(q)) ||
-        (b.room_details?.room_number && b.room_details.room_number.toLowerCase().includes(q))
+        b.guest_details?.full_name?.toLowerCase().includes(q) ||
+        b.room_details?.room_number?.toLowerCase().includes(q) ||
+        b.booking_id.toLowerCase().includes(q)
 
-      const matchesStatus = statusFilter === "all" || b.status === statusFilter
-      return matchesSearch && matchesStatus
+      const matchStatus =
+        statusFilter === "all" || b.status?.toLowerCase() === statusFilter.toLowerCase()
+
+      return matchSearch && matchStatus
     })
   }, [bookings, search, statusFilter])
 
   const events = useMemo(() => toEvents(filteredBookings), [filteredBookings])
 
-  // ─── Actions ──────────────────────────────────
+  const getDayEvents = (date: Date) => {
+    return events.filter((e) => isSameDay(e.date, date))
+  }
+
+  // ─── Navigation Handlers ───────────────────
+  const handlePrev = () => {
+    if (viewMode === "day") setCurrentDate((d) => subDays(d, 1))
+    else if (viewMode === "week") setCurrentDate((d) => subDays(d, 7))
+    else setCurrentDate((d) => subMonths(d, 1))
+  }
+
+  const handleNext = () => {
+    if (viewMode === "day") setCurrentDate((d) => addDays(d, 1))
+    else if (viewMode === "week") setCurrentDate((d) => addDays(d, 7))
+    else setCurrentDate((d) => addMonths(d, 1))
+  }
+
+  const handleToday = () => {
+    setCurrentDate(new Date())
+  }
+
+  // ─── Drawer Open Helper ────────────────────
+  const openDetail = (bookingId: string) => {
+    const found = bookings.find((b) => b.booking_id === bookingId)
+    if (found) {
+      setSelectedBooking(found)
+      setDrawerOpen(true)
+    }
+  }
+
+  // ─── Action Handlers ───────────────────────
   async function handleCheckIn() {
     if (!selectedBooking) return
     setActionLoading(true)
     try {
       const token = await getToken()
       await checkInBooking(selectedBooking.booking_id, token!)
-      toast.success("Guest checked in successfully")
+      toast.success(`Checked in ${selectedBooking.guest_details?.full_name || "guest"}`)
       setDrawerOpen(false)
-      await loadBookings()
+      loadData()
     } catch (err: any) {
-      toast.error(err?.message || "Check-in failed")
+      toast.error(err?.message || "Failed to check in")
     } finally {
       setActionLoading(false)
     }
@@ -147,11 +186,11 @@ export function HotelCalendar() {
     try {
       const token = await getToken()
       await checkOutBooking(selectedBooking.booking_id, token!)
-      toast.success("Guest checked out successfully")
+      toast.success(`Checked out ${selectedBooking.guest_details?.full_name || "guest"}`)
       setDrawerOpen(false)
-      await loadBookings()
+      loadData()
     } catch (err: any) {
-      toast.error(err?.message || "Check-out failed")
+      toast.error(err?.message || "Failed to check out")
     } finally {
       setActionLoading(false)
     }
@@ -163,11 +202,11 @@ export function HotelCalendar() {
     try {
       const token = await getToken()
       await cancelBooking(selectedBooking.booking_id, token!)
-      toast.success("Booking cancelled successfully")
+      toast.success("Reservation cancelled")
       setDrawerOpen(false)
-      await loadBookings()
+      loadData()
     } catch (err: any) {
-      toast.error(err?.message || "Cancellation failed")
+      toast.error(err?.message || "Failed to cancel reservation")
     } finally {
       setActionLoading(false)
     }
@@ -179,173 +218,172 @@ export function HotelCalendar() {
     try {
       const token = await getToken()
       await deleteBooking(selectedBooking.booking_id, token!)
-      toast.success("Booking deleted successfully")
+      toast.success("Reservation deleted")
       setDrawerOpen(false)
-      await loadBookings()
+      loadData()
     } catch (err: any) {
-      toast.error(err?.message || "Delete failed")
+      toast.error(err?.message || "Failed to delete reservation")
     } finally {
       setActionLoading(false)
     }
   }
 
   async function handleAddBooking(values: BookingFormValues) {
-    const token = await getToken()
-    await createBooking(values, token!)
-    toast.success("Booking created successfully")
-    await loadBookings()
+    try {
+      const token = await getToken()
+      await createBooking(values, token!)
+      toast.success("New reservation created successfully!")
+      setAddOpen(false)
+      loadData()
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to create reservation")
+      throw err
+    }
   }
 
   async function handleEditBooking(values: BookingFormValues) {
     if (!selectedBooking) return
-    const token = await getToken()
-    await updateBooking(selectedBooking.booking_id, values, token!)
-    toast.success("Booking updated successfully")
-    setDrawerOpen(false)
-    await loadBookings()
-  }
-
-  // ─── Navigation Handlers ──────────────────────
-  function navigate(direction: "prev" | "next") {
-    if (viewMode === "day") {
-      setCurrentDate(direction === "prev" ? subDays(currentDate, 1) : addDays(currentDate, 1))
-    } else if (viewMode === "week") {
-      setCurrentDate(direction === "prev" ? subDays(currentDate, 7) : addDays(currentDate, 7))
-    } else {
-      setCurrentDate(direction === "prev" ? subMonths(currentDate, 1) : addMonths(currentDate, 1))
+    try {
+      const token = await getToken()
+      await updateBooking(selectedBooking.booking_id, values, token!)
+      toast.success("Reservation updated successfully!")
+      setEditOpen(false)
+      setDrawerOpen(false)
+      loadData()
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update reservation")
+      throw err
     }
   }
 
-  function getActiveDateRangeLabel() {
+  // ─── Header Title Generator ────────────────
+  const headerTitle = useMemo(() => {
     if (viewMode === "day") {
       return format(currentDate, "MMMM d, yyyy")
-    } else if (viewMode === "week") {
-      const start = startOfWeek(currentDate)
-      const end = addDays(start, 6)
-      if (start.getMonth() === end.getMonth()) {
-        return `${format(start, "MMMM d")} – ${format(end, "d, yyyy")}`
-      }
-      return `${format(start, "MMM d")} – ${format(end, "MMM d, yyyy")}`
-    } else {
-      return format(currentDate, "MMMM yyyy")
     }
-  }
+    if (viewMode === "week") {
+      const start = startOfWeek(currentDate, { weekStartsOn: 0 })
+      const end = addDays(start, 6)
+      return `${format(start, "MMM d")} – ${format(end, "MMM d, yyyy")}`
+    }
+    if (viewMode === "timeline") {
+      return "Room Stay Timeline Grid"
+    }
+    return format(currentDate, "MMMM yyyy")
+  }, [currentDate, viewMode])
 
-  const getDayEvents = (date: Date) => events.filter((e) => isSameDay(e.date, date))
-
-  function openDetail(booking: Booking) {
-    setSelectedBooking(booking)
-    setDrawerOpen(true)
-  }
+  const actions = (
+    <div className="flex items-center gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={loadData}
+        disabled={loading}
+        className="h-8 text-xs cursor-pointer gap-1.5"
+      >
+        <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+        Refresh
+      </Button>
+      <Button
+        size="sm"
+        onClick={() => setAddOpen(true)}
+        className="h-8 text-xs cursor-pointer bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 gap-1.5"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        New Reservation
+      </Button>
+    </div>
+  )
 
   return (
     <BaseLayout
-      title="Booking Calendar"
-      description="Live view of guest check-ins and check-outs across all rooms."
-      actions={
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={loadBookings}
-            disabled={loading}
-            className="cursor-pointer gap-2 h-9"
-            title="Refresh bookings"
-          >
-            <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-            Refresh
-          </Button>
-
-          <Button
-            size="sm"
-            onClick={() => setAddOpen(true)}
-            className="cursor-pointer gap-2 h-9"
-          >
-            <Plus className="h-4 w-4" /> New Booking
-          </Button>
-        </div>
-      }
+      title="Reservation Calendar"
+      description="Visual schedule of check-ins, check-outs, and stay timelines across hotel room inventory."
+      actions={actions}
     >
-      <div className="px-4 lg:px-6 flex flex-col gap-6">
-        {/* Full horizontal Filter bar */}
+      <div className="px-4 lg:px-6 space-y-4 pb-8">
+        {/* ── Filter Bar ── */}
         <FilterBar
           search={{
             value: search,
             onChange: setSearch,
-            placeholder: "Search by Guest, Room, Booking ID...",
-            label: "Search Calendar",
+            placeholder: "Search guest name, room # or booking ID...",
           }}
           filters={[
             {
               id: "status",
-              label: "Booking Status",
               value: statusFilter,
               onValueChange: setStatusFilter,
               options: [
                 { label: "All Statuses", value: "all" },
-                { label: "Pending", value: "PENDING" },
-                { label: "Confirmed", value: "CONFIRMED" },
-                { label: "Checked In", value: "CHECKED_IN" },
-                { label: "Checked Out", value: "CHECKED_OUT" },
-                { label: "Cancelled", value: "CANCELLED" },
+                { label: "Confirmed", value: "confirmed" },
+                { label: "Checked In", value: "checked_in" },
+                { label: "Checked Out", value: "checked_out" },
+                { label: "Pending", value: "pending" },
+                { label: "Cancelled", value: "cancelled" },
               ],
             },
           ]}
-          onReset={() => {
-            setSearch("")
-            setStatusFilter("all")
-          }}
-          isFiltered={search !== "" || statusFilter !== "all"}
         />
 
-        {/* ── Calendar Grid Container ── */}
-        <div className="border border-border/50 bg-gradient-to-b from-card to-card/95 rounded-xl overflow-hidden flex flex-col shadow-2xs hover:shadow-xs transition-all duration-300">
-          {/* Navigation Toolbar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border-b border-border/30 bg-muted/10">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => navigate("prev")}
-                className="h-8 w-8 cursor-pointer"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => navigate("next")}
-                className="h-8 w-8 cursor-pointer"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+        {/* ── Calendar Toolbar & Main Container ── */}
+        <div className="border border-border/60 bg-gradient-to-b from-card via-card to-card/95 rounded-2xl p-5 shadow-sm space-y-5">
+          {/* Top Control Header */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-border/40 pb-4">
+            
+            {/* Title & Navigation Controls */}
+            <div className="flex items-center gap-2.5">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentDate(new Date())}
-                className="cursor-pointer"
+                onClick={handleToday}
+                className="h-8 text-xs font-bold cursor-pointer rounded-lg border-border/60 hover:bg-accent"
               >
                 Today
               </Button>
-              <h2 className="text-sm font-semibold text-foreground ml-2">
-                {getActiveDateRangeLabel()}
+
+              <div className="flex items-center bg-muted/40 rounded-lg p-0.5 border border-border/40">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handlePrev}
+                  className="h-7 w-7 rounded-md cursor-pointer hover:bg-background shadow-none"
+                  aria-label="Previous period"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleNext}
+                  className="h-7 w-7 rounded-md cursor-pointer hover:bg-background shadow-none"
+                  aria-label="Next period"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <h2 className="text-base font-extrabold text-foreground ml-1 tracking-tight">
+                {headerTitle}
               </h2>
             </div>
 
-            {/* View Toggle */}
-            <div className="flex rounded-lg border border-border p-0.5 bg-background">
-              {(["day", "week", "month"] as const).map((view) => (
+            {/* View Switcher Tabs */}
+            <div className="flex items-center rounded-xl bg-muted/50 p-1 border border-border/50 shadow-2xs">
+              {(["day", "week", "month", "timeline"] as const).map((view) => (
                 <Button
                   key={view}
                   variant={viewMode === view ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode(view)}
                   className={cn(
-                    "h-7 text-xs px-3 capitalize cursor-pointer rounded-md",
-                    viewMode === view ? "shadow-xs" : ""
+                    "h-7 text-xs px-3.5 capitalize cursor-pointer rounded-lg font-bold transition-all duration-200",
+                    viewMode === view 
+                      ? "shadow-xs bg-background text-foreground ring-1 ring-border/50" 
+                      : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  {view}
+                  {view === "timeline" ? "Room Grid" : view}
                 </Button>
               ))}
             </div>
@@ -354,7 +392,7 @@ export function HotelCalendar() {
           {/* ── View Renderers ── */}
           {loading ? (
             <div className="h-[450px] flex items-center justify-center">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground font-semibold animate-pulse">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" /> Loading calendar events...
               </div>
             </div>
@@ -363,18 +401,24 @@ export function HotelCalendar() {
               <div className="text-center space-y-3">
                 <AlertTriangle className="h-10 w-10 text-destructive mx-auto opacity-75" />
                 <p className="text-sm text-muted-foreground font-medium">{error}</p>
-                <Button onClick={loadBookings} size="sm" className="cursor-pointer">
+                <Button onClick={loadData} size="sm" className="cursor-pointer">
                   Retry
                 </Button>
               </div>
             </div>
+          ) : viewMode === "timeline" ? (
+            <CalendarTimelineView
+              rooms={rooms}
+              bookings={bookings}
+              onSelectBooking={(id) => openDetail(id)}
+            />
           ) : (
             <CalendarViews
-              viewMode={viewMode}
+              viewMode={viewMode as "day" | "week" | "month"}
               currentDate={currentDate}
               setCurrentDate={setCurrentDate}
               getDayEvents={getDayEvents}
-              openDetail={openDetail}
+              openDetail={(b) => openDetail(b.booking_id)}
             />
           )}
         </div>

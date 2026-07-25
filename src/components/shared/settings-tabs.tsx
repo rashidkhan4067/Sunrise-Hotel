@@ -1,7 +1,7 @@
 "use client"
 
 import { NavLink, useLocation } from "react-router-dom"
-import { Building2, User, Sliders, Lock } from "lucide-react"
+import { Building2, User, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function SettingsTabs() {
@@ -9,7 +9,14 @@ export function SettingsTabs() {
   const path = location.pathname
 
   const isAdmin = path.startsWith("/admin")
-  const prefix = isAdmin ? "/admin/settings" : "/client/settings"
+  const isReceptionist = path.startsWith("/receptionist")
+  
+  let prefix = "/guest/settings"
+  if (isAdmin) {
+    prefix = "/admin/settings"
+  } else if (isReceptionist) {
+    prefix = "/receptionist/settings"
+  }
 
   const tabs = [
     ...(isAdmin
@@ -25,11 +32,6 @@ export function SettingsTabs() {
       title: "My Profile",
       url: `${prefix}/user`,
       icon: User,
-    },
-    {
-      title: "Preferences",
-      url: `${prefix}/preferences`,
-      icon: Sliders,
     },
     {
       title: "Security",

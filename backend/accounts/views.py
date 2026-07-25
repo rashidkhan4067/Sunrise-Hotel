@@ -8,6 +8,7 @@ import logging
 import requests
 from django.conf import settings
 from .serializers import UserSerializer
+from reports.models import log_audit_event
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -59,6 +60,7 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
 class ClerkUsersListView(APIView):
     """API view to fetch all users from Clerk's Backend API using the secret key."""
     permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = 'auth'
 
     def get(self, request):
         secret_key = os.getenv('CLERK_SECRET_KEY') or getattr(settings, 'CLERK_SECRET_KEY', '')
@@ -156,6 +158,15 @@ class ClerkUsersListView(APIView):
             secret_key = os.getenv('CLERK_SECRET_KEY') or getattr(settings, 'CLERK_SECRET_KEY', '')
             
             if secret_key:
+                # Generate valid username
+                import re
+                import uuid
+                local_part = email.split('@')[0]
+                clean_username = re.sub(r'[^a-zA-Z0-9._]', '', local_part)
+                if len(clean_username) < 4:
+                    clean_username = f"{clean_username}{uuid.uuid4().hex[:6]}"
+                clean_username = clean_username[:64]
+
                 # Create user in Clerk
                 headers = {
                     'Authorization': f'Bearer {secret_key}',
@@ -164,6 +175,7 @@ class ClerkUsersListView(APIView):
                 clerk_payload = {
                     'email_address': [email],
                     'password': password,
+                    'username': clean_username,
                     'first_name': first_name,
                     'last_name': last_name,
                     'public_metadata': {
@@ -171,7 +183,10 @@ class ClerkUsersListView(APIView):
                     }
                 }
                 try:
+                    print("DEBUG: Sending payload to Clerk:", clerk_payload)
                     r = requests.post('https://api.clerk.com/v1/users', headers=headers, json=clerk_payload)
+                    print("DEBUG: Clerk Response status:", r.status_code)
+                    print("DEBUG: Clerk Response body:", r.text)
                     if r.status_code == 200 or r.status_code == 201:
                         clerk_user = r.json()
                         clerk_id = clerk_user.get('id')
@@ -179,6 +194,7 @@ class ClerkUsersListView(APIView):
                         # Return Clerk API error details to frontend
                         return Response(r.json(), status=r.status_code)
                 except Exception as e:
+                    print("DEBUG: Clerk API Exception:", str(e))
                     return Response({'error': f'Failed to create user in Clerk: {str(e)}'}, status=500)
             
             user = serializer.save(
@@ -187,6 +203,15 @@ class ClerkUsersListView(APIView):
                 first_name=first_name,
                 last_name=last_name,
                 role=role_val
+            )
+            
+            log_audit_event(
+                user=request.user,
+                action='STAFF_CREATED',
+                description=f"Created staff account {user.email} with role {user.role}",
+                model_name='User',
+                object_id=user.id,
+                request=request
             )
             
             return Response({
@@ -273,24 +298,37 @@ class UserDetailView(APIView):
 
     def delete(self, request, pk):
         try:
+            print("DEBUG: DELETE requested for user PK:", pk)
             user = User.objects.get(id=pk)
         except (User.DoesNotExist, ValueError, ValidationError):
             try:
                 user = User.objects.get(clerk_id=pk)
             except User.DoesNotExist:
+                print("DEBUG: DELETE failed - User not found in local DB")
                 return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
         
+        print("DEBUG: Deleting user from Clerk:", user.clerk_id)
         secret_key = os.getenv('CLERK_SECRET_KEY') or getattr(settings, 'CLERK_SECRET_KEY', '')
         if secret_key and user.clerk_id:
             headers = {
                 'Authorization': f'Bearer {secret_key}',
             }
             try:
-                requests.delete(f'https://api.clerk.com/v1/users/{user.clerk_id}', headers=headers)
+                r = requests.delete(f'https://api.clerk.com/v1/users/{user.clerk_id}', headers=headers)
+                print("DEBUG: Clerk DELETE status:", r.status_code)
+                print("DEBUG: Clerk DELETE response:", r.text)
             except Exception as e:
+                print("DEBUG: Clerk DELETE exception:", str(e))
                 logger.warning("Clerk delete failed: %s", str(e))
                 
-        user.delete()
+        try:
+            print("DEBUG: Deleting user from local DB:", user.id)
+            user.delete()
+            print("DEBUG: User deleted successfully from local DB")
+        except Exception as e:
+            print("DEBUG: Local DB delete exception:", str(e))
+            return Response({'error': f'Failed to delete user locally: {str(e)}'}, status=500)
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

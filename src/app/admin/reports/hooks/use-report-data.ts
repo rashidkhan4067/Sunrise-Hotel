@@ -11,6 +11,13 @@ const DEFAULT_SUMMARY: ReportSummary = {
   totalRevenue: 0.0,
   occupancyRate: 0.0,
   activeGuests: 0,
+  financials: {
+    adr: 0,
+    revpar: 0,
+    alos: 0,
+    roomRevenue: 0,
+    taxRevenue: 0
+  }
 }
 
 export function useReportData(filters: ReportFilters) {
@@ -40,10 +47,30 @@ export function useReportData(filters: ReportFilters) {
           if (filters.endDate) params.append("end_date", filters.endDate)
         }
 
-        const data = await apiClient.get<any>(`/reports/data/?${params.toString()}`, token)
-        if (data && active) {
-          setRows(data.rows || [])
-          setSummary(data.summary || DEFAULT_SUMMARY)
+        const [reportRes, finRes] = await Promise.all([
+          apiClient.get<any>(`/reports/data/?${params.toString()}`, token).catch(() => null),
+          apiClient.get<any>(`/reports/financials/?${params.toString()}`, token).catch(() => null)
+        ])
+
+        if (active) {
+          const loadedSummary = reportRes?.summary || DEFAULT_SUMMARY
+          if (finRes?.kpis) {
+            loadedSummary.financials = {
+              adr: finRes.kpis.adr || 0,
+              revpar: finRes.kpis.revpar || 0,
+              alos: finRes.kpis.alos || 0,
+              roomRevenue: finRes.kpis.roomRevenue || 0,
+              taxRevenue: finRes.kpis.taxRevenue || 0
+            }
+          }
+          if (finRes?.forecasting) {
+            loadedSummary.forecasting = finRes.forecasting
+          }
+          if (finRes?.occupancyByRoomType) {
+            loadedSummary.occupancyByRoomType = finRes.occupancyByRoomType
+          }
+          setRows(reportRes?.rows || [])
+          setSummary(loadedSummary)
         }
       } catch (err: any) {
         if (active) {

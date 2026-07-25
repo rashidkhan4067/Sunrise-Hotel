@@ -1,6 +1,6 @@
 "use client"
 
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BookingStatusBadge } from "@/components/shared"
 import { ArrowUpRight, ArrowDownRight, ClipboardList, LogIn, LogOut } from "lucide-react"
@@ -14,6 +14,8 @@ export function TodayOperations({
   checkOuts: TodayCheckInOut[]
 }) {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const prefix = pathname.startsWith("/receptionist") ? "/receptionist" : "/admin"
 
   return (
     <Card className="border-border shadow-sm hover:shadow-md transition-all duration-300 bg-card/60 backdrop-blur-xs">
@@ -43,7 +45,7 @@ export function TodayOperations({
               {checkIns.map((item, idx) => (
                 <div
                   key={idx}
-                  onClick={() => navigate(`/admin/bookings?search=${encodeURIComponent(item.guestName)}`)}
+                  onClick={() => navigate(`${prefix}/bookings?search=${encodeURIComponent(item.guestName)}`)}
                   className="group flex items-center justify-between p-3 rounded-xl border border-border/60 bg-background/40 text-xs cursor-pointer hover:bg-muted/30 hover:border-primary/30 transition-all duration-200"
                 >
                   <div className="flex items-center gap-3">
@@ -80,7 +82,7 @@ export function TodayOperations({
               {checkOuts.map((item, idx) => (
                 <div
                   key={idx}
-                  onClick={() => navigate(`/admin/bookings?search=${encodeURIComponent(item.guestName)}`)}
+                  onClick={() => navigate(`${prefix}/bookings?search=${encodeURIComponent(item.guestName)}`)}
                   className="group flex items-center justify-between p-3 rounded-xl border border-border/60 bg-background/40 text-xs cursor-pointer hover:bg-muted/30 hover:border-primary/30 transition-all duration-200"
                 >
                   <div className="flex items-center gap-3">

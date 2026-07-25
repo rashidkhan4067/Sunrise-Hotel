@@ -48,8 +48,7 @@ export function ForgotPasswordForm({
   // Redirect immediately if already signed in
   useEffect(() => {
     if (isAuthenticated) {
-      const redirectPath = role === "org:admin" ? "/admin/dashboard" : "/guest/dashboard"
-      navigate(redirectPath)
+      navigate("/")
     }
   }, [isAuthenticated, navigate, role])
 
@@ -115,8 +114,7 @@ export function ForgotPasswordForm({
           toast.success("You are already signed in.", {
             description: "Redirecting you to the dashboard.",
           })
-          const redirectPath = role === "org:admin" ? "/admin/dashboard" : "/guest/dashboard"
-          navigate(redirectPath)
+          navigate("/")
           return
         }
       }
@@ -170,8 +168,7 @@ export function ForgotPasswordForm({
         toast.success("Password reset successfully!", {
           description: "Welcome to your Dashboard.",
         })
-        const redirectPath = role === "org:admin" ? "/admin/dashboard" : "/guest/dashboard"
-        setTimeout(() => navigate(redirectPath), 500)
+        setTimeout(() => navigate("/"), 500)
       } else {
         throw new Error(`Process incomplete: Status is ${result.status}`)
       }
@@ -186,8 +183,7 @@ export function ForgotPasswordForm({
           toast.success("You are already signed in.", {
             description: "Redirecting you to the dashboard.",
           })
-          const redirectPath = role === "org:admin" ? "/admin/dashboard" : "/guest/dashboard"
-          navigate(redirectPath)
+          navigate("/")
           return
         }
       }

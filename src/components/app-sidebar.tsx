@@ -45,7 +45,11 @@ export function AppSidebar({ role = "admin", ...props }: AppSidebarProps) {
         : guestNavGroups
 
   const dashboardUrl =
-    role === "guest" ? "/guest/dashboard" : "/admin/dashboard"
+    role === "guest"
+      ? "/guest/dashboard"
+      : role === "receptionist"
+        ? "/receptionist/dashboard"
+        : "/admin/dashboard"
 
   return (
     <Sidebar {...props}>

@@ -18,7 +18,6 @@ import { toast } from "sonner"
 import { getInitials } from "@/lib/utils"
 import {
   User,
-  Settings,
   LogOut,
   ChevronDown,
   Key,
@@ -37,7 +36,12 @@ export function UserNav() {
     navigate("/auth/sign-in")
   }
 
-  const prefix = role === "org:admin" ? "/admin" : "/client"
+  let prefix = "/guest"
+  if (role === "org:admin") {
+    prefix = "/admin"
+  } else if (role === "receptionist") {
+    prefix = "/receptionist"
+  }
 
   return (
     <DropdownMenu>
@@ -82,10 +86,6 @@ export function UserNav() {
           <DropdownMenuItem onClick={() => navigate(prefix + "/settings/password")} className="cursor-pointer gap-2">
             <Key className="size-4 text-muted-foreground" />
             Password
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => navigate(prefix + "/settings/preferences")} className="cursor-pointer gap-2">
-            <Settings className="size-4 text-muted-foreground" />
-            Preferences
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

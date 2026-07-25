@@ -1,6 +1,8 @@
 import { lazy } from 'react'
 import { Navigate } from 'react-router-dom'
 import { AdminRoute } from '@/components/admin-route'
+import { StaffRoute } from '@/components/staff-route'
+import { GuestRoute } from '@/components/guest-route'
 import { ProtectedRoute } from '@/components/router/protected-route'
 import { useAuth } from '@/contexts/auth-context'
 import { RouteProgress } from '@/components/route-progress'
@@ -15,11 +17,18 @@ const RoomDetail = lazy(() => import('@/app/admin/rooms/detail-page'))
 const Bookings = lazy(() => import('@/app/admin/bookings/page'))
 const Guests = lazy(() => import('@/app/admin/guests/page'))
 
+// ─── Receptionist Pages ─────────────────────────────────────────
+const ReceptionistDashboard = lazy(() => import('@/app/receptionist/dashboard/page'))
+const ReceptionistCalendar = lazy(() => import('@/app/receptionist/calendar/page'))
+const ReceptionistRooms = lazy(() => import('@/app/receptionist/rooms/page'))
+const ReceptionistRoomDetail = lazy(() => import('@/app/receptionist/rooms/detail-page'))
+const ReceptionistBookings = lazy(() => import('@/app/receptionist/bookings/page'))
+const ReceptionistGuests = lazy(() => import('@/app/receptionist/guests/page'))
+
 // ─── Settings Pages ────────────────────────────────────────────
 const HotelSettings = lazy(() => import('@/app/admin/settings/hotel/page'))
 const UserSettings = lazy(() => import('@/app/admin/settings/user/page'))
 const PasswordSettings = lazy(() => import('@/app/admin/settings/password/page'))
-const PreferencesSettings = lazy(() => import('@/app/admin/settings/preferences/page'))
 
 // ─── Auth Pages (utility routes — not sidebar items) ───────────
 const SignIn = lazy(() => import('@/app/auth/sign-in/page'))
@@ -38,6 +47,13 @@ const UnderMaintenance = lazy(() => import('@/app/errors/under-maintenance/page'
 const GuestDashboard = lazy(() => import('@/app/guest/dashboard/page'))
 const GuestBookings = lazy(() => import('@/app/guest/bookings/page'))
 
+// ─── Support & Live Help Desk ──────────────────────────────────
+const AdminSupport = lazy(() => import('@/app/admin/support/page'))
+const GuestSupport = lazy(() => import('@/app/guest/support/page'))
+
+// ─── Landing Page ──────────────────────────────────────────────
+const LandingPage = lazy(() => import('@/components/landing').then(m => ({ default: m.LandingPage })))
+
 export interface RouteConfig {
   path: string
   element: React.ReactNode
@@ -53,17 +69,27 @@ function RootRedirect() {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/auth/sign-in" replace />
+    return <LandingPage />
   }
 
-  return <Navigate to={role === "org:admin" ? "/admin/dashboard" : "/guest/dashboard"} replace />
+  if (role === "org:admin") {
+    return <Navigate to="/admin/dashboard" replace />
+  }
+  if (role === "receptionist") {
+    return <Navigate to="/receptionist/dashboard" replace />
+  }
+  return <Navigate to="/guest/dashboard" replace />
 }
 
 export const routes: RouteConfig[] = [
-  // Root redirect
+  // Root path
   {
     path: "/",
     element: <RootRedirect />
+  },
+  {
+    path: "/landing",
+    element: <LandingPage />
   },
 
   // ─── Admin: Hotel Modules ───────────────────────────────────
@@ -102,8 +128,12 @@ export const routes: RouteConfig[] = [
 
   // ─── Admin: Settings ────────────────────────────────────────
   {
+    path: "/admin/support",
+    element: <AdminRoute><AdminSupport /></AdminRoute>
+  },
+  {
     path: "/admin/settings/hotel",
-    element: <ProtectedRoute><HotelSettings /></ProtectedRoute>
+    element: <AdminRoute><HotelSettings /></AdminRoute>
   },
   {
     path: "/admin/settings/user",
@@ -111,33 +141,67 @@ export const routes: RouteConfig[] = [
   },
   {
     path: "/admin/settings/password",
-    element: <ProtectedRoute><PasswordSettings /></ProtectedRoute>
+    element: <AdminRoute><PasswordSettings /></AdminRoute>
+  },
+
+  // ─── Receptionist Portal ─────────────────────────────────────
+  {
+    path: "/receptionist/dashboard",
+    element: <StaffRoute><ReceptionistDashboard /></StaffRoute>
   },
   {
-    path: "/admin/settings/preferences",
-    element: <ProtectedRoute><PreferencesSettings /></ProtectedRoute>
+    path: "/receptionist/bookings",
+    element: <StaffRoute><ReceptionistBookings /></StaffRoute>
+  },
+  {
+    path: "/receptionist/calendar",
+    element: <StaffRoute><ReceptionistCalendar /></StaffRoute>
+  },
+  {
+    path: "/receptionist/rooms",
+    element: <StaffRoute><ReceptionistRooms /></StaffRoute>
+  },
+  {
+    path: "/receptionist/rooms/:id",
+    element: <StaffRoute><ReceptionistRoomDetail /></StaffRoute>
+  },
+  {
+    path: "/receptionist/guests",
+    element: <StaffRoute><ReceptionistGuests /></StaffRoute>
+  },
+  {
+    path: "/receptionist/support",
+    element: <StaffRoute><AdminSupport /></StaffRoute>
+  },
+  {
+    path: "/receptionist/settings/user",
+    element: <ProtectedRoute><UserSettings /></ProtectedRoute>
+  },
+  {
+    path: "/receptionist/settings/password",
+    element: <ProtectedRoute><PasswordSettings /></ProtectedRoute>
   },
 
   // ─── Guest Portal ───────────────────────────────────────────
   {
     path: "/guest/dashboard",
-    element: <ProtectedRoute><GuestDashboard /></ProtectedRoute>
+    element: <GuestRoute><GuestDashboard /></GuestRoute>
   },
   {
     path: "/guest/bookings",
-    element: <ProtectedRoute><GuestBookings /></ProtectedRoute>
+    element: <GuestRoute><GuestBookings /></GuestRoute>
+  },
+  {
+    path: "/guest/support",
+    element: <GuestRoute><GuestSupport /></GuestRoute>
   },
   {
     path: "/guest/settings/user",
-    element: <ProtectedRoute><UserSettings /></ProtectedRoute>
+    element: <GuestRoute><UserSettings /></GuestRoute>
   },
   {
     path: "/guest/settings/password",
-    element: <ProtectedRoute><PasswordSettings /></ProtectedRoute>
-  },
-  {
-    path: "/guest/settings/preferences",
-    element: <ProtectedRoute><PreferencesSettings /></ProtectedRoute>
+    element: <GuestRoute><PasswordSettings /></GuestRoute>
   },
 
   // ─── Auth (utility routes) ───────────────────────────────────

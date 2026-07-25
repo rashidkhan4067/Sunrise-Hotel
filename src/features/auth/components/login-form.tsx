@@ -14,7 +14,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import { Loader2 } from "lucide-react"
 import React from "react"
 import { toast } from "sonner"
@@ -43,8 +43,7 @@ export function LoginForm({
 
   React.useEffect(() => {
     if (isAuthenticated) {
-      const redirectPath = role === "org:admin" ? "/admin/dashboard" : "/guest/dashboard"
-      navigate(redirectPath)
+      navigate("/")
     }
   }, [isAuthenticated, navigate, role])
 
@@ -98,8 +97,7 @@ export function LoginForm({
       toast.success("Device verified successfully!", {
         description: "Welcome back to your dashboard panel.",
       })
-      const redirectPath = role === "org:admin" ? "/admin/dashboard" : "/guest/dashboard"
-      setTimeout(() => navigate(redirectPath), 500)
+      setTimeout(() => navigate("/"), 500)
     } catch (err: any) {
       console.error("Verification Error:", err)
       const clerkError = err.errors?.[0]
@@ -200,9 +198,9 @@ export function LoginForm({
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-2xl font-bold">Sign In</h1>
-        <p className="text-muted-foreground text-sm text-balance">
-          Access the Management Console
+        <h1 className="text-3xl font-serif font-bold tracking-tight text-foreground">Welcome Back</h1>
+        <p className="text-muted-foreground text-xs font-medium text-balance">
+          Access the SunRise Hotel & Spa Portal
         </p>
       </div>
 
@@ -214,11 +212,12 @@ export function LoginForm({
               name="email"
               render={({ field }) => (
                 <FormItem className="grid gap-1 space-y-0">
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel className="text-xs font-bold uppercase tracking-wider">Email Address</FormLabel>
                   <FormControl>
                     <Input
                       type="email"
-                      placeholder="test@example.com"
+                      placeholder="concierge@sunrisehotel.com"
+                      className="h-11 rounded-xl"
                       {...field}
                     />
                   </FormControl>
@@ -233,16 +232,16 @@ export function LoginForm({
               render={({ field }) => (
                 <FormItem className="grid gap-1 space-y-0">
                   <div className="flex items-center justify-between">
-                    <FormLabel>Password</FormLabel>
-                    <a
-                      href="/auth/forgot-password"
-                      className="text-sm underline-offset-4 hover:underline"
+                    <FormLabel className="text-xs font-bold uppercase tracking-wider">Password</FormLabel>
+                    <Link
+                      to="/auth/forgot-password"
+                      className="text-xs text-primary hover:opacity-90 font-semibold underline-offset-4 hover:underline"
                     >
-                      Forgot your password?
-                    </a>
+                      Forgot password?
+                    </Link>
                   </div>
                   <FormControl>
-                    <Input type="password" {...field} />
+                    <Input type="password" className="h-11 rounded-xl" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -272,15 +271,15 @@ export function LoginForm({
 
             <Button
               type="submit"
-              className="w-full cursor-pointer animate-all"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs uppercase tracking-widest h-11 rounded-xl shadow-md cursor-pointer"
               disabled={isLoggingIn || isLoading}
             >
               {isLoggingIn && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Login
+              Sign In to Sanctuary
             </Button>
 
             <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t my-2">
-              <span className="bg-background text-muted-foreground relative z-10 px-2">
+              <span className="bg-background text-muted-foreground relative z-10 px-2 text-xs font-semibold">
                 Or continue with
               </span>
             </div>
@@ -288,11 +287,11 @@ export function LoginForm({
             <GoogleButton mode="login" />
           </div>
 
-          <div className="text-center text-sm">
-            Don&apos;t have an account?{" "}
-            <a href="/auth/sign-up" className="underline underline-offset-4">
-              Sign up
-            </a>
+          <div className="text-center text-xs text-muted-foreground font-medium">
+            Don&apos;t have an account yet?{" "}
+            <Link to="/auth/sign-up" className="text-primary hover:opacity-90 font-bold underline underline-offset-4">
+              Create Resort Account
+            </Link>
           </div>
         </form>
       </Form>

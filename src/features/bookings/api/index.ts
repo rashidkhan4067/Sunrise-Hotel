@@ -38,3 +38,12 @@ export async function fetchAvailableRooms(checkIn: string, checkOut: string, tok
 }
 
 export const fetchGuests = fetchGuestsApi
+
+export async function fetchFolioByBooking(bookingId: string, token: string) {
+  const folios = await apiClient.get<any[]>(`/folios/?booking=${bookingId}`, token)
+  return folios && folios.length > 0 ? folios[0] : null
+}
+
+export async function postFolioItem(data: { folio: number; item_type: string; description: string; amount: number }, token: string) {
+  return apiClient.post<any>("/folio-items/", data, token)
+}

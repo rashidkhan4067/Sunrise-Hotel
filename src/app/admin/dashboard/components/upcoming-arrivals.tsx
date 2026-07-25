@@ -1,12 +1,14 @@
 "use client"
 
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar, UserCheck } from "lucide-react"
 import type { UpcomingArrival } from "@/hooks/use-dashboard-data"
 
 export function UpcomingArrivals({ arrivals }: { arrivals: UpcomingArrival[] }) {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const prefix = pathname.startsWith("/receptionist") ? "/receptionist" : "/admin"
 
   return (
     <Card className="border-border shadow-sm hover:shadow-md transition-all duration-300 bg-card/60 backdrop-blur-xs">
@@ -28,7 +30,7 @@ export function UpcomingArrivals({ arrivals }: { arrivals: UpcomingArrival[] }) 
               <div
                 key={idx}
                 className="flex items-center justify-between p-3.5 hover:bg-muted/30 transition-all duration-200 cursor-pointer"
-                onClick={() => navigate(`/admin/bookings?search=${encodeURIComponent(arr.guestName)}`)}
+                onClick={() => navigate(`${prefix}/bookings?search=${encodeURIComponent(arr.guestName)}`)}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="h-8 w-8 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-[10px] shrink-0 uppercase">

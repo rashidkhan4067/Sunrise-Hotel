@@ -11,7 +11,7 @@ export function GuestDirectory() {
   ]
 
   return (
-    <Card className="border-border/80 shadow-sm hover:shadow-md transition-all duration-300 bg-card/60 backdrop-blur-xs">
+    <Card className="border-border/80 shadow-sm hover:shadow-md transition-all duration-300 bg-card/60 backdrop-blur-xs h-full flex flex-col justify-between">
       <CardHeader className="pb-3 border-b border-border/60">
         <CardTitle className="text-sm font-bold flex items-center gap-2">
           <Compass className="h-4 w-4 text-primary" />

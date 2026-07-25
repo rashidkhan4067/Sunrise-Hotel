@@ -17,7 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2 } from "lucide-react"
 import React from "react"
 import { toast } from "sonner"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import { useAuth } from "@/contexts/auth-context"
 import { signupFormSchema } from "../lib/schemas"
 import { GoogleButton } from "./google-button"
@@ -44,8 +44,7 @@ export function SignupForm({
       ) {
         return
       }
-      const redirectPath = role === "org:admin" ? "/admin/dashboard" : "/guest/dashboard"
-      navigate(redirectPath)
+      navigate("/")
     }
   }, [isAuthenticated, navigate, role])
 
@@ -124,8 +123,7 @@ export function SignupForm({
       toast.success("Account created successfully!", {
         description: "Welcome to SunRise Hotel.",
       })
-      const redirectPath = role === "org:admin" ? "/admin/dashboard" : "/guest/dashboard"
-      setTimeout(() => navigate(redirectPath), 500)
+      setTimeout(() => navigate("/"), 500)
     } catch (err: any) {
       console.error("Verification Error:", err)
       const errorMsg = err.message || "Invalid verification code."
@@ -157,11 +155,11 @@ export function SignupForm({
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-2xl font-bold">Sign Up</h1>
-        <p className="text-muted-foreground text-sm text-balance">
+        <h1 className="text-3xl font-serif font-bold tracking-tight text-foreground">Create Resort Account</h1>
+        <p className="text-muted-foreground text-xs font-medium text-balance">
           {isOAuthIncomplete 
             ? `Set a password to complete your account for ${signUp?.emailAddress}`
-            : "Create your management account"}
+            : "Unlock private booking privileges & guest portal access"}
         </p>
       </div>
 
@@ -175,9 +173,9 @@ export function SignupForm({
                   name="firstName"
                   render={({ field }) => (
                     <FormItem className="grid gap-1 space-y-0">
-                      <FormLabel>First Name</FormLabel>
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider">First Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="John" {...field} />
+                        <Input placeholder="John" className="h-11 rounded-xl" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -189,9 +187,9 @@ export function SignupForm({
                   name="lastName"
                   render={({ field }) => (
                     <FormItem className="grid gap-1 space-y-0">
-                      <FormLabel>Last Name</FormLabel>
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider">Last Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="Doe" {...field} />
+                        <Input placeholder="Doe" className="h-11 rounded-xl" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -204,9 +202,9 @@ export function SignupForm({
                 name="email"
                 render={({ field }) => (
                   <FormItem className="grid gap-1 space-y-0">
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel className="text-xs font-bold uppercase tracking-wider">Email Address</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="m@example.com" {...field} />
+                      <Input type="email" placeholder="concierge@sunrisehotel.com" className="h-11 rounded-xl" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -220,9 +218,9 @@ export function SignupForm({
             name="password"
             render={({ field }) => (
               <FormItem className="grid gap-1 space-y-0">
-                <FormLabel>Password</FormLabel>
+                <FormLabel className="text-xs font-bold uppercase tracking-wider">Password</FormLabel>
                 <FormControl>
-                  <Input type="password" {...field} />
+                  <Input type="password" className="h-11 rounded-xl" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -234,9 +232,9 @@ export function SignupForm({
             name="confirmPassword"
             render={({ field }) => (
               <FormItem className="grid gap-1 space-y-0">
-                <FormLabel>Confirm Password</FormLabel>
+                <FormLabel className="text-xs font-bold uppercase tracking-wider">Confirm Password</FormLabel>
                 <FormControl>
-                  <Input type="password" {...field} />
+                  <Input type="password" className="h-11 rounded-xl" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -255,13 +253,13 @@ export function SignupForm({
                     className="mt-0.5"
                   />
                 </FormControl>
-                <FormLabel className="text-sm font-medium leading-none cursor-pointer">
+                <FormLabel className="text-xs font-medium leading-normal cursor-pointer text-muted-foreground">
                   I agree to the{" "}
-                  <a href="#" className="underline underline-offset-4 hover:text-primary">
+                  <a href="#about" className="text-primary font-bold underline underline-offset-4 hover:opacity-90">
                     Terms of Service
                   </a>{" "}
                   and{" "}
-                  <a href="#" className="underline underline-offset-4 hover:text-primary">
+                  <a href="#about" className="text-primary font-bold underline underline-offset-4 hover:opacity-90">
                     Privacy Policy
                   </a>
                 </FormLabel>
@@ -274,17 +272,17 @@ export function SignupForm({
 
           <Button
             type="submit"
-            className="w-full cursor-pointer animate-all"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs uppercase tracking-widest h-11 rounded-xl shadow-md cursor-pointer"
             disabled={isSigningUp || isLoading}
           >
             {isSigningUp && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Create Account
+            Create VIP Account
           </Button>
 
           {!isOAuthIncomplete && (
             <>
-              <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t my-2">
-                <span className="bg-background text-muted-foreground relative z-10 px-2">
+              <div className="after:border-border relative text-center text-xs after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t my-2">
+                <span className="bg-background text-muted-foreground relative z-10 px-2 font-semibold">
                   Or continue with
                 </span>
               </div>
@@ -293,11 +291,11 @@ export function SignupForm({
             </>
           )}
 
-          <div className="text-center text-sm">
-            Already have an account?{" "}
-            <a href="/auth/sign-in" className="underline underline-offset-4">
-              Sign in
-            </a>
+          <div className="text-center text-xs text-muted-foreground font-medium">
+            Already have a resort account?{" "}
+            <Link to="/auth/sign-in" className="text-primary hover:opacity-90 font-bold underline underline-offset-4">
+              Sign In
+            </Link>
           </div>
         </form>
       </Form>

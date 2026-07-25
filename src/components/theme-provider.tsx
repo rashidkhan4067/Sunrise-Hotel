@@ -17,7 +17,35 @@ type ThemeProviderProps = {
 function restoreCustomizerTheme(isDarkMode: boolean) {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.themeCustomizer)
-    if (!raw) return
+
+    // ── Seed the resort theme on first visit ──────────────────────────────
+    // If there is no saved customizer config yet, auto-apply "sunrise-resort-gold"
+    // so the dashboard immediately matches the landing page brand identity.
+    if (!raw) {
+      const defaultConfig = {
+        selectedTweakcnTheme: "sunrise-noir-gold",
+        selectedRadius: "0.75rem",
+      }
+      localStorage.setItem(STORAGE_KEYS.themeCustomizer, JSON.stringify(defaultConfig))
+
+      const root = document.documentElement
+      root.style.setProperty("--radius", "0.75rem")
+
+      import("@/utils/tweakcn-theme-presets").then(({ tweakcnPresets }) => {
+        const preset = tweakcnPresets["sunrise-noir-gold"]
+        if (preset?.styles) {
+          const styles = isDarkMode ? preset.styles.dark : preset.styles.light
+          if (styles) {
+            Object.entries(styles as Record<string, string>).forEach(([key, value]) => {
+              root.style.setProperty(`--${key}`, value)
+            })
+          }
+        }
+      })
+      return
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     const { selectedTheme, selectedTweakcnTheme, selectedRadius, importedTheme } = JSON.parse(raw)
 
     const root = document.documentElement

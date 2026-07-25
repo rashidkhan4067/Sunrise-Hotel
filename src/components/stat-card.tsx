@@ -42,14 +42,14 @@ export function StatCard({
           )}
         </div>
         
-        <div className="flex items-baseline justify-between gap-1.5">
-          <span className="text-xl font-bold tracking-tight text-foreground tabular-nums">
+        <div className="flex flex-wrap items-baseline justify-between gap-1.5">
+          <span className="text-lg xl:text-xl font-bold tracking-tight text-foreground tabular-nums">
             {value}
           </span>
           {badgeText && (
-            <Badge variant={badgeVariant} className={badgeClassName}>
+            <Badge variant={badgeVariant} className={`shrink-0 ${badgeClassName}`}>
               {BadgeIcon && <BadgeIcon className="h-2.5 w-2.5 shrink-0" />}
-              <span>{badgeText}</span>
+              <span className="whitespace-nowrap">{badgeText}</span>
             </Badge>
           )}
         </div>

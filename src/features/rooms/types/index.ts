@@ -33,6 +33,8 @@ export interface Room {
   description?: string | null
   amenities?: string | null
   is_archived?: boolean
+  is_clean?: boolean
+  is_inspected?: boolean
   
   // Optional enriched fields
   current_booking?: ActiveBooking | null

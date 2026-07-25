@@ -29,6 +29,7 @@ export interface RecentBooking {
   checkIn: string
   checkOut: string
   status: string
+  totalPrice?: number
 }
 
 export interface UpcomingArrival {
@@ -67,10 +68,12 @@ export function useDashboardData() {
 
   useEffect(() => {
     let active = true
+    let intervalId: any = null
 
-    async function loadData() {
-      setLoading(true)
-      setError(null)
+    async function loadData(isInitial = false) {
+      if (isInitial) {
+        setLoading(true)
+      }
       try {
         const token = await getToken()
         if (!token) return
@@ -78,23 +81,33 @@ export function useDashboardData() {
         const payload = await apiClient.get<DashboardPayload>("/reports/dashboard/", token)
         if (active) {
           setData(payload)
+          setError(null)
         }
       } catch (err: any) {
-        if (active) {
+        if (active && isInitial) {
           setError(err.message || "An error occurred.")
           toast.error(err.message || "Failed to load dashboard statistics.")
         }
       } finally {
-        if (active) {
+        if (active && isInitial) {
           setLoading(false)
         }
       }
     }
 
-    loadData()
+    // Initial load
+    loadData(true)
+
+    // Poll every 5 seconds for real-time live data
+    intervalId = setInterval(() => {
+      loadData(false)
+    }, 5000)
 
     return () => {
       active = false
+      if (intervalId) {
+        clearInterval(intervalId)
+      }
     }
   }, [getToken])
 

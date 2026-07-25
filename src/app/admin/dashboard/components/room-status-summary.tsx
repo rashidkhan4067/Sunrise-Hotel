@@ -1,6 +1,6 @@
 "use client"
 
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Bed, Key, Brush, Wrench, LayoutGrid } from "lucide-react"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
@@ -17,6 +17,8 @@ export function RoomStatusSummary({
   maintenance: number
 }) {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const prefix = pathname.startsWith("/receptionist") ? "/receptionist" : "/admin"
   const totalRooms = available + occupied + cleaning + maintenance
 
   const statuses = [
@@ -67,7 +69,7 @@ export function RoomStatusSummary({
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(v: number) => [`${v} Rooms`, "Count"]}
+                  formatter={(v: any) => [`${v ?? 0} Rooms`, "Count"]}
                   contentStyle={{
                     fontSize: 10,
                     fontWeight: 600,
@@ -96,7 +98,7 @@ export function RoomStatusSummary({
           {statuses.map(({ label, value, icon: Icon, color, className, statusKey }) => (
             <div
               key={label}
-              onClick={() => navigate(`/admin/rooms?status=${statusKey}`)}
+              onClick={() => navigate(`${prefix}/rooms?status=${statusKey}`)}
               className={`space-y-1.5 p-2 rounded-lg border border-transparent cursor-pointer transition-all duration-200 ${className}`}
             >
               <div className="flex justify-between items-center text-xs">

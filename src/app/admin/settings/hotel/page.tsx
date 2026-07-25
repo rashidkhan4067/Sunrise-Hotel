@@ -28,6 +28,8 @@ import {
 import { toast } from "sonner"
 import { useEffect, useState } from "react"
 import { Building2, Mail, Phone, MapPin, Loader2, Landmark } from "lucide-react"
+import { HotelConfigTab } from "../components/hotel-config-tab"
+import { SystemBackupTab } from "../components/system-backup-tab"
 
 const hotelFormSchema = z.object({
   hotelName: z.string().min(2, "Hotel name must be at least 2 characters"),
@@ -292,6 +294,11 @@ export default function HotelSettingsPage() {
             </div>
           </form>
         </Form>
+
+        <div className="pt-4 space-y-6">
+          <HotelConfigTab />
+          <SystemBackupTab />
+        </div>
       </div>
     </BaseLayout>
   )

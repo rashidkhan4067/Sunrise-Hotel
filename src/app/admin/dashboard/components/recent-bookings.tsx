@@ -1,6 +1,6 @@
 "use client"
 
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BookingStatusBadge } from "@/components/shared"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,8 @@ import type { RecentBooking } from "@/hooks/use-dashboard-data"
 
 export function RecentBookings({ bookings }: { bookings: RecentBooking[] }) {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const prefix = pathname.startsWith("/receptionist") ? "/receptionist" : "/admin"
 
   return (
     <Card className="border-border shadow-sm hover:shadow-md transition-all duration-300 bg-card/60 backdrop-blur-xs">
@@ -21,7 +23,7 @@ export function RecentBookings({ bookings }: { bookings: RecentBooking[] }) {
           </CardTitle>
           <CardDescription className="text-xs">Latest reservations logged in database</CardDescription>
         </div>
-        <Button variant="outline" size="sm" className="h-8 text-xs cursor-pointer gap-1" onClick={() => navigate("/admin/bookings")}>
+        <Button variant="outline" size="sm" className="h-8 text-xs cursor-pointer gap-1" onClick={() => navigate(`${prefix}/bookings`)}>
           View All Bookings
           <ArrowRight className="h-3 w-3" />
         </Button>
@@ -37,7 +39,7 @@ export function RecentBookings({ bookings }: { bookings: RecentBooking[] }) {
               <div
                 key={b.bookingId}
                 className="flex items-center justify-between p-3.5 hover:bg-muted/30 transition-all duration-200 cursor-pointer"
-                onClick={() => navigate(`/admin/bookings?search=${encodeURIComponent(b.bookingId)}`)}
+                onClick={() => navigate(`${prefix}/bookings?search=${encodeURIComponent(b.bookingId)}`)}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="h-8 w-8 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-[10px] shrink-0 uppercase">
@@ -56,7 +58,7 @@ export function RecentBookings({ bookings }: { bookings: RecentBooking[] }) {
                 <div className="flex items-center gap-4 shrink-0 text-right">
                   <div className="flex flex-col items-end gap-0.5">
                     <span className="text-[10px] text-muted-foreground font-semibold">{b.checkIn} → {b.checkOut}</span>
-                    <span className="font-bold text-foreground text-xs">{formatCurrency(b.totalPrice)}</span>
+                    <span className="font-bold text-foreground text-xs">{formatCurrency(b.totalPrice || 0)}</span>
                   </div>
                   <BookingStatusBadge status={b.status} />
                 </div>

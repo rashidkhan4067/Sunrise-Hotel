@@ -40,7 +40,7 @@ export function AddUserDialog({ open, onOpenChange, onAdd }: AddUserDialogProps)
   const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const role = "Receptionist"
+  const [role, setRole] = useState("Receptionist")
   const [status, setStatus] = useState("Active")
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -58,6 +58,7 @@ export function AddUserDialog({ open, onOpenChange, onAdd }: AddUserDialogProps)
     setPhone("")
     setPassword("")
     setConfirmPassword("")
+    setRole("Receptionist")
   }
 
   return (
@@ -131,7 +132,19 @@ export function AddUserDialog({ open, onOpenChange, onAdd }: AddUserDialogProps)
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1 col-span-2">
+            <div className="space-y-1">
+              <Label htmlFor="add-role">Role</Label>
+              <Select value={role} onValueChange={setRole}>
+                <SelectTrigger id="add-role" className="cursor-pointer">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Admin">Admin</SelectItem>
+                  <SelectItem value="Receptionist">Receptionist</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
               <Label htmlFor="add-status">Status</Label>
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger id="add-status" className="cursor-pointer">

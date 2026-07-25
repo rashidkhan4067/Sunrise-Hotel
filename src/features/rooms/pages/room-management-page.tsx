@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useNavigate, useSearchParams } from "react-router-dom"
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { Button } from "@/components/ui/button"
 import { StatCard } from "@/components/stat-card"
@@ -22,22 +22,26 @@ import {
   createRoom,
   updateRoom,
   deleteRoom,
+  toggleRoomClean,
+  toggleRoomInspect,
 } from "../api"
 import { useAuth } from "@/contexts/auth-context"
-import { Plus, Download, RefreshCw, ChevronLeft, ChevronRight, Bed, CheckCircle2, KeyRound, Wrench, TrendingUp, MoreHorizontal, Edit, Trash2, ShieldAlert, BadgeInfo } from "lucide-react"
+import { Plus, Download, RefreshCw, ChevronLeft, ChevronRight, Bed, CheckCircle2, KeyRound, Wrench, TrendingUp, MoreHorizontal, Edit, Trash2, ShieldAlert, BadgeInfo, Sparkles } from "lucide-react"
 import { ErrorBanner, RoomStatusBadge, DataTable, FilterBar, type ColumnDef } from "@/components/shared"
 import { toast } from "sonner"
 import { formatCurrency, capitalize, downloadCSV } from "@/utils/format"
-import { isAdminRole } from "@/lib/utils"
 
 export function RoomManagementPage() {
-  const { getToken } = useAuth()
+  const { getToken, role } = useAuth()
+  const isAdmin = role === "org:admin"
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const { pathname } = useLocation()
+  const prefix = pathname.startsWith("/receptionist") ? "/receptionist" : "/admin"
 
   // Data States
   const [rooms, setRooms] = useState<Room[]>([])
-  const [summary, setSummary] = useState({ total: 0, available: 0, occupied: 0, cleaning: 0, maintenance: 0 })
+  const [summary, setSummary] = useState({ total: 0, available: 0, occupied: 0, cleaning: 0, maintenance: 0, dirty: 0, uninspected: 0 })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -50,6 +54,8 @@ export function RoomManagementPage() {
   const [search, setSearch] = useState(() => searchParams.get("search") || "")
   const [floorFilter, setFloorFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
+  const [cleanFilter, setCleanFilter] = useState("all")
+  const [inspectFilter, setInspectFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState(() => {
     const s = searchParams.get("status")
     return s ? s.toLowerCase() : "all"
@@ -95,6 +101,8 @@ export function RoomManagementPage() {
           floor: floorFilter !== "all" ? floorFilter : undefined,
           room_type: typeFilter !== "all" ? typeFilter : undefined,
           status: statusFilter !== "all" ? statusFilter.toUpperCase() : undefined,
+          is_clean: cleanFilter !== "all" ? (cleanFilter === "clean" ? "true" : "false") : undefined,
+          is_inspected: inspectFilter !== "all" ? (inspectFilter === "inspected" ? "true" : "false") : undefined,
           ordering: sortBy,
         })
 
@@ -121,7 +129,7 @@ export function RoomManagementPage() {
     loadData(1)
     setCurrentPage(1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, floorFilter, typeFilter, statusFilter, sortBy])
+  }, [search, floorFilter, typeFilter, statusFilter, cleanFilter, inspectFilter, sortBy])
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage)
@@ -133,6 +141,8 @@ export function RoomManagementPage() {
     setFloorFilter("all")
     setTypeFilter("all")
     setStatusFilter("all")
+    setCleanFilter("all")
+    setInspectFilter("all")
     setSortBy("room_number")
   }
 
@@ -190,6 +200,30 @@ export function RoomManagementPage() {
     }
   }
 
+  const handleToggleClean = async (room: Room) => {
+    try {
+      const token = await getToken()
+      if (!token) return
+      const res = await toggleRoomClean(room.id, token)
+      toast.success(`Room ${room.room_number} is now marked as ${res.is_clean ? "Clean" : "Dirty"}`)
+      loadData(currentPage)
+    } catch (err: any) {
+      toast.error(err.message || "Failed to toggle room cleanliness")
+    }
+  }
+
+  const handleToggleInspect = async (room: Room) => {
+    try {
+      const token = await getToken()
+      if (!token) return
+      const res = await toggleRoomInspect(room.id, token)
+      toast.success(`Room ${room.room_number} inspection status marked as ${res.is_inspected ? "Inspected" : "Pending"}`)
+      loadData(currentPage)
+    } catch (err: any) {
+      toast.error(err.message || "Failed to toggle inspection status")
+    }
+  }
+
   // Calculate unique floor numbers for filter dropdown
   const floors = Array.from(new Set(rooms.map((r) => String(r.floor)))).sort((a, b) => Number(a) - Number(b))
 
@@ -218,7 +252,7 @@ export function RoomManagementPage() {
         <div className="flex flex-col">
           <span className="font-semibold text-foreground">
             <Link 
-              to={`/admin/rooms/${room.id}`}
+              to={`${prefix}/rooms/${room.id}`}
               className="hover:underline flex items-center gap-2 text-primary focus:outline-none focus:ring-1 focus:ring-primary rounded px-0.5"
             >
               <Bed className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -262,6 +296,38 @@ export function RoomManagementPage() {
       ),
     },
     {
+      header: "Cleanliness",
+      className: "text-center",
+      hideOnMobile: true,
+      cell: (room) => (
+        <div className="flex justify-center">
+          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border ${
+            room.is_clean 
+              ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900" 
+              : "bg-destructive/10 text-destructive border-destructive/20"
+          }`}>
+            {room.is_clean ? "Clean" : "Dirty"}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: "Inspection",
+      className: "text-center",
+      hideOnMobile: true,
+      cell: (room) => (
+        <div className="flex justify-center">
+          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border ${
+            room.is_inspected 
+              ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900" 
+              : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900"
+          }`}>
+            {room.is_inspected ? "Inspected" : "Pending"}
+          </span>
+        </div>
+      ),
+    },
+    {
       header: "",
       className: "w-[80px] text-right",
       cell: (room) => (
@@ -272,17 +338,19 @@ export function RoomManagementPage() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => navigate(`/admin/rooms/${room.id}`)} className="cursor-pointer gap-2">
+            <DropdownMenuItem onClick={() => navigate(`${prefix}/rooms/${room.id}`)} className="cursor-pointer gap-2">
               <BadgeInfo className="h-3.5 w-3.5 text-muted-foreground" />
               View Details
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              setSelectedRoom(room)
-              setEditOpen(true)
-            }} className="cursor-pointer gap-2">
-              <Edit className="h-3.5 w-3.5 text-muted-foreground" />
-              Edit Room
-            </DropdownMenuItem>
+            {isAdmin && (
+              <DropdownMenuItem onClick={() => {
+                setSelectedRoom(room)
+                setEditOpen(true)
+              }} className="cursor-pointer gap-2">
+                <Edit className="h-3.5 w-3.5 text-muted-foreground" />
+                Edit Room
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={() => {
               setSelectedRoom(room)
               setStatusOpen(true)
@@ -290,10 +358,20 @@ export function RoomManagementPage() {
               <ShieldAlert className="h-3.5 w-3.5 text-muted-foreground" />
               Change Status
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleArchiveRoom(room)} className="text-destructive cursor-pointer gap-2 hover:!bg-destructive/10">
-              <Trash2 className="h-3.5 w-3.5" />
-              Archive Room
+            <DropdownMenuItem onClick={() => handleToggleClean(room)} className="cursor-pointer gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
+              Mark {room.is_clean ? "Dirty" : "Clean"}
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleToggleInspect(room)} className="cursor-pointer gap-2" disabled={!room.is_clean}>
+              <Wrench className="h-3.5 w-3.5 text-muted-foreground" />
+              Mark {room.is_inspected ? "Pending" : "Inspected"}
+            </DropdownMenuItem>
+            {isAdmin && (
+              <DropdownMenuItem onClick={() => handleArchiveRoom(room)} className="text-destructive cursor-pointer gap-2 hover:!bg-destructive/10">
+                <Trash2 className="h-3.5 w-3.5" />
+                Archive Room
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       ),
@@ -309,15 +387,17 @@ export function RoomManagementPage() {
         <p className="font-semibold text-sm">No rooms found</p>
         <p className="text-xs text-muted-foreground mt-0.5">Try adjusting your filters or register a new room.</p>
       </div>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setAddOpen(true)}
-        className="cursor-pointer gap-1.5 mt-1"
-      >
-        <Plus className="h-4 w-4" />
-        Add Room
-      </Button>
+      {isAdmin && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setAddOpen(true)}
+          className="cursor-pointer gap-1.5 mt-1"
+        >
+          <Plus className="h-4 w-4" />
+          Add Room
+        </Button>
+      )}
     </div>
   )
 
@@ -346,14 +426,16 @@ export function RoomManagementPage() {
             <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button
-            size="sm"
-            onClick={() => setAddOpen(true)}
-            className="cursor-pointer gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add Room
-          </Button>
+          {isAdmin && (
+            <Button
+              size="sm"
+              onClick={() => setAddOpen(true)}
+              className="cursor-pointer gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Room
+            </Button>
+          )}
         </div>
       }
     >
@@ -364,8 +446,8 @@ export function RoomManagementPage() {
           <ErrorBanner message={error} onRetry={() => loadData(currentPage)} />
         )}
 
-        {/* Summary counts row using single StatCard component */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Summary counts row using StatCard components */}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           {[
             {
               title: "Total Rooms",
@@ -392,6 +474,14 @@ export function RoomManagementPage() {
               footerText: "Currently checked in",
               footerIcon: TrendingUp,
               footerSubtext: "Occupied guest rooms",
+            },
+            {
+              title: "Dirty Rooms",
+              value: summary.dirty,
+              icon: Sparkles,
+              badgeText: summary.dirty > 0 ? "Attention" : "Clean",
+              footerText: summary.dirty > 0 ? "Housekeeping needed" : "All rooms clean",
+              footerSubtext: "Requires turn-down",
             },
             {
               title: "Maintenance",
@@ -454,6 +544,28 @@ export function RoomManagementPage() {
               ],
             },
             {
+              id: "cleanliness",
+              label: "Cleanliness",
+              value: cleanFilter,
+              onValueChange: setCleanFilter,
+              options: [
+                { label: "All Cleanliness", value: "all" },
+                { label: "Clean", value: "clean" },
+                { label: "Dirty", value: "dirty" },
+              ],
+            },
+            {
+              id: "inspection",
+              label: "Inspection",
+              value: inspectFilter,
+              onValueChange: setInspectFilter,
+              options: [
+                { label: "All Inspection", value: "all" },
+                { label: "Inspected", value: "inspected" },
+                { label: "Pending", value: "pending" },
+              ],
+            },
+            {
               id: "sortBy",
               label: "Sort By",
               value: sortBy,
@@ -469,7 +581,7 @@ export function RoomManagementPage() {
             },
           ]}
           onReset={handleResetFilters}
-          isFiltered={search !== "" || floorFilter !== "all" || typeFilter !== "all" || statusFilter !== "all" || sortBy !== "room_number"}
+          isFiltered={search !== "" || floorFilter !== "all" || typeFilter !== "all" || statusFilter !== "all" || cleanFilter !== "all" || inspectFilter !== "all" || sortBy !== "room_number"}
         />
 
         {/* Table representation */}

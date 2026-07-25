@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { useAuth } from "@/contexts/auth-context"
-import { fetchRoom, updateRoom } from "../api"
+import { fetchRoom, updateRoom, toggleRoomClean, toggleRoomInspect } from "../api"
 import type { Room } from "../types"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -34,6 +34,8 @@ import {
   Edit,
   Plus,
   ExternalLink,
+  Wrench,
+  CheckCircle2,
 } from "lucide-react"
 
 interface RoomDetailPageProps {
@@ -51,9 +53,12 @@ const getAmenityIcon = (name: string) => {
 
 export function RoomDetailPage({ roomId }: RoomDetailPageProps) {
   const { getToken } = useAuth()
+  const { pathname } = useLocation()
+  const prefix = pathname.startsWith("/receptionist") ? "/receptionist" : "/admin"
   const [room, setRoom] = useState<Room | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [togglingHousekeeping, setTogglingHousekeeping] = useState(false)
 
   // Dialog States
   const [editOpen, setEditOpen] = useState(false)
@@ -106,6 +111,38 @@ export function RoomDetailPage({ roomId }: RoomDetailPageProps) {
     }
   }
 
+  const handleToggleClean = async () => {
+    if (!room) return
+    setTogglingHousekeeping(true)
+    try {
+      const token = await getToken()
+      if (!token) return
+      const res = await toggleRoomClean(room.id, token)
+      toast.success(`Room ${room.room_number} is now marked as ${res.is_clean ? "Clean" : "Dirty"}`)
+      loadDetails()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to toggle cleanliness")
+    } finally {
+      setTogglingHousekeeping(false)
+    }
+  }
+
+  const handleToggleInspect = async () => {
+    if (!room) return
+    setTogglingHousekeeping(true)
+    try {
+      const token = await getToken()
+      if (!token) return
+      const res = await toggleRoomInspect(room.id, token)
+      toast.success(`Room ${room.room_number} inspection marked as ${res.is_inspected ? "Inspected" : "Pending"}`)
+      loadDetails()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to toggle inspection")
+    } finally {
+      setTogglingHousekeeping(false)
+    }
+  }
+
   const amenitiesList = room?.amenities
     ? room.amenities
         .split(",")
@@ -141,7 +178,7 @@ export function RoomDetailPage({ roomId }: RoomDetailPageProps) {
               </Button>
             </>
           )}
-          <Link to="/admin/rooms">
+          <Link to={`${prefix}/rooms`}>
             <Button variant="outline" size="sm" className="cursor-pointer gap-1.5">
               <ArrowLeft className="h-4 w-4" />
               Back to Rooms
@@ -184,6 +221,20 @@ export function RoomDetailPage({ roomId }: RoomDetailPageProps) {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Room {room.room_number}</h1>
                       <RoomStatusBadge status={room.status} />
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border ${
+                        room.is_clean 
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900" 
+                          : "bg-destructive/10 text-destructive border-destructive/20"
+                      }`}>
+                        {room.is_clean ? "Clean" : "Dirty"}
+                      </span>
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border ${
+                        room.is_inspected 
+                          ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900" 
+                          : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900"
+                      }`}>
+                        {room.is_inspected ? "Inspected" : "Pending Inspection"}
+                      </span>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1.5 flex items-center gap-1.5">
                       <span className="capitalize font-medium">{room.room_type?.toLowerCase()} Room</span>
@@ -237,6 +288,64 @@ export function RoomDetailPage({ roomId }: RoomDetailPageProps) {
                   </CardContent>
                 </Card>
 
+                {/* Housekeeping Controls Card */}
+                <Card className="border-border shadow-sm hover:shadow-md transition-all duration-300">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                      <Sparkles className="h-3.5 w-3.5 text-emerald-500" /> Housekeeping Controls
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-foreground">Cleanliness Status</span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {room.is_clean ? "Ready for guest stay" : "Turn-down service required"}
+                        </span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant={room.is_clean ? "outline" : "default"}
+                        onClick={handleToggleClean}
+                        disabled={togglingHousekeeping}
+                        className={`h-8 text-xs gap-1.5 cursor-pointer font-semibold ${
+                          !room.is_clean ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""
+                        }`}
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        {room.is_clean ? "Mark Dirty" : "Mark Clean"}
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-foreground">Inspection Audit</span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {room.is_inspected ? "Verified by supervisor" : "Awaiting inspection check"}
+                        </span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant={room.is_inspected ? "outline" : "default"}
+                        onClick={handleToggleInspect}
+                        disabled={togglingHousekeeping || !room.is_clean}
+                        className={`h-8 text-xs gap-1.5 cursor-pointer font-semibold ${
+                          !room.is_inspected && room.is_clean ? "bg-blue-600 hover:bg-blue-700 text-white" : ""
+                        }`}
+                      >
+                        <Wrench className="h-3.5 w-3.5" />
+                        {room.is_inspected ? "Mark Pending" : "Mark Inspected"}
+                      </Button>
+                    </div>
+
+                    {!room.is_clean && (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400 bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/20 font-medium leading-relaxed">
+                        ⚠️ <strong>Housekeeping Gate Active:</strong> Guests cannot check into this room until it is cleaned.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+
                 {/* Amenities Card */}
                 <Card className="border-border shadow-sm hover:shadow-md transition-all duration-300">
                   <CardHeader className="pb-3">
@@ -282,7 +391,7 @@ export function RoomDetailPage({ roomId }: RoomDetailPageProps) {
                           <p className="text-xs text-muted-foreground mt-0.5">Active checked-in stay</p>
                         </div>
                         <Link
-                          to={`/admin/bookings?search=${encodeURIComponent(room.current_booking?.guest?.name || "")}`}
+                          to={`${prefix}/bookings?search=${encodeURIComponent(room.current_booking?.guest?.name || "")}`}
                           className="ml-auto flex items-center gap-1.5 text-xs text-primary hover:underline font-semibold"
                         >
                           Manage Booking
@@ -377,7 +486,7 @@ export function RoomDetailPage({ roomId }: RoomDetailPageProps) {
                         </p>
                       </div>
                     </div>
-                    <Link to={`/admin/bookings?action=new&room_id=${room.id}`} className="shrink-0">
+                    <Link to={`${prefix}/bookings?action=new&room_id=${room.id}`} className="shrink-0">
                       <Button
                         size="sm"
                         className="w-full md:w-auto gap-1.5 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white"

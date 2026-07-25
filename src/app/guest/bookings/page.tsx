@@ -6,30 +6,22 @@ import { BaseLayout } from "@/components/layouts/base-layout"
 import { useAuth } from "@/contexts/auth-context"
 import { fetchBookings, createBooking, cancelBooking } from "@/features/bookings/api"
 import type { Booking } from "@/features/bookings/types"
-import { BookingStatusBadge } from "@/components/shared"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { CardDescription, CardTitle, Card } from "@/components/ui/card"
 import {
   BookingFormDialog,
   CancelBookingDialog
 } from "@/features/bookings/components/booking-dialogs"
 import { BookingDetailView } from "@/features/bookings/components/booking-detail-view"
-import { formatCurrency, formatDate } from "@/utils/format"
 import { toast } from "sonner"
 import { 
-  CalendarDays, 
   Search, 
   Plus, 
-  MapPin, 
-  Users, 
-  Receipt, 
-  Calendar,
-  XCircle,
-  Eye,
   Loader2,
   Inbox
 } from "lucide-react"
+import { BookingCard } from "./components/booking-card"
 
 export default function GuestBookingsPage() {
   const { getToken } = useAuth()
@@ -54,7 +46,7 @@ export default function GuestBookingsPage() {
       const token = await getToken()
       if (!token) return
       const data = await fetchBookings(token)
-      const list = Array.isArray(data) ? data : (data.results || [])
+      const list = Array.isArray(data) ? data : ((data as any)?.results || [])
       setBookings(list)
     } catch (err: any) {
       console.error(err)
@@ -78,6 +70,16 @@ export default function GuestBookingsPage() {
       setSearchParams(newParams)
     }
   }, [searchParams, setSearchParams])
+
+  const handleViewDetails = (booking: Booking) => {
+    setSelectedBooking(booking)
+    setDetailOpen(true)
+  }
+
+  const handleCancelClick = (booking: Booking) => {
+    setSelectedBooking(booking)
+    setCancelOpen(true)
+  }
 
   // Filter bookings locally
   const filteredBookings = (bookings || []).filter((b) => {
@@ -199,86 +201,12 @@ export default function GuestBookingsPage() {
         ) : (
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {filteredBookings.map((b) => (
-              <Card key={b.booking_id} className="border-border/80 shadow-3xs hover:shadow-sm transition-all duration-300 flex flex-col justify-between overflow-hidden bg-card/60">
-                {/* Card Header with room/status */}
-                <CardHeader className="pb-3 border-b border-border/60">
-                  <div className="flex justify-between items-start gap-2">
-                    <div className="min-w-0">
-                      <span className="font-mono text-[10px] text-muted-foreground uppercase font-semibold">
-                        ID: {b.booking_id}
-                      </span>
-                      <h4 className="text-sm font-black text-foreground truncate mt-0.5">
-                        Room {b.room_details?.room_number || "—"} ({b.room_details?.room_type || "—"})
-                      </h4>
-                    </div>
-                    <BookingStatusBadge status={b.status} />
-                  </div>
-                </CardHeader>
-
-                {/* Card Body */}
-                <CardContent className="pt-4 pb-3 space-y-3.5 text-xs">
-                  {/* Checkin / Checkout date */}
-                  <div className="grid grid-cols-2 gap-4 border-b border-border/40 pb-3">
-                    <div>
-                      <span className="text-[10px] text-muted-foreground uppercase font-bold flex items-center gap-1">
-                        <MapPin className="h-3 w-3 text-emerald-500" />
-                        Check-in
-                      </span>
-                      <p className="font-bold text-foreground mt-0.5">{formatDate(b.check_in)}</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-muted-foreground uppercase font-bold flex items-center gap-1">
-                        <MapPin className="h-3 w-3 text-blue-500" />
-                        Check-out
-                      </span>
-                      <p className="font-bold text-foreground mt-0.5">{formatDate(b.check_out)}</p>
-                    </div>
-                  </div>
-
-                  {/* Pricing and Capacity details */}
-                  <div className="flex justify-between items-center text-xs">
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Users className="h-3.5 w-3.5" />
-                      <span>{b.adults} Adult{b.adults !== 1 && "s"} {b.children > 0 && `| ${b.children} Child`}</span>
-                    </div>
-                    <div className="flex items-center gap-1 font-bold text-foreground">
-                      <Receipt className="h-3.5 w-3.5 text-primary" />
-                      <span>{formatCurrency(b.total_price)}</span>
-                    </div>
-                  </div>
-                </CardContent>
-
-                {/* Card Footer Actions */}
-                <CardFooter className="pt-2 border-t border-border/60 bg-muted/5 gap-2 justify-end">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs font-semibold hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
-                    onClick={() => {
-                      setSelectedBooking(b)
-                      setDetailOpen(true)
-                    }}
-                  >
-                    <Eye className="mr-1.5 h-3.5 w-3.5" />
-                    Details
-                  </Button>
-
-                  {["PENDING", "CONFIRMED"].includes(b.status) && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="text-xs font-semibold bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 hover:border-transparent transition-all cursor-pointer"
-                      onClick={() => {
-                        setSelectedBooking(b)
-                        setCancelOpen(true)
-                      }}
-                    >
-                      <XCircle className="mr-1.5 h-3.5 w-3.5" />
-                      Cancel
-                    </Button>
-                  )}
-                </CardFooter>
-              </Card>
+              <BookingCard
+                key={b.booking_id}
+                booking={b}
+                onViewDetails={handleViewDetails}
+                onCancel={handleCancelClick}
+              />
             ))}
           </div>
         )}
@@ -291,7 +219,6 @@ export default function GuestBookingsPage() {
         mode="add"
         getToken={getToken}
         onSubmit={handleCreateBooking}
-        loading={actionLoading}
       />
 
       {/* Booking details drawer */}

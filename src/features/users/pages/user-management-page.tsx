@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { StatCard } from "@/components/stat-card"
-import { Users, UserCheck, Shield, ConciergeBell } from "lucide-react"
+import { Users, UserCheck, Shield, ConciergeBell, Plus } from "lucide-react"
 import { cn, getInitials } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -24,7 +24,7 @@ import {
   Trash2,
 } from "lucide-react"
 import { DataTable, type ColumnDef } from "@/components/shared"
-import { useUser, useOrganization } from "@clerk/react"
+import { useUser } from "@clerk/react"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
 
@@ -59,11 +59,6 @@ const getRoleColor = (role: string) => {
 
 export function UserManagementPage() {
   const { user: currentUser, isLoaded: isUserLoaded } = useUser()
-  const { memberships, isLoaded: isOrgLoaded } = useOrganization({
-    memberships: {
-      pageSize: 50,
-    }
-  })
   const { getToken } = useAuth()
 
   const [users, setUsers] = useState<User[]>([])
@@ -83,7 +78,7 @@ export function UserManagementPage() {
   useEffect(() => {
     localStorage.removeItem("registered_users_cache")
     if (hasInitialized) return
-    if (!isOrgLoaded || !isUserLoaded) return
+    if (!isUserLoaded) return
     
     async function loadRealUsers() {
       try {
@@ -114,24 +109,8 @@ export function UserManagementPage() {
       
       // Fallback
       let mapped: User[] = []
-      const membershipData = (memberships as any)?.data || []
       
-      if (membershipData.length > 0) {
-        mapped = membershipData.map((m: any, idx: number) => {
-          const user = m.publicUserData
-          return {
-            id: user.userId || idx + 1,
-            name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Clerk User",
-            email: user.identifier || "",
-            avatar: user.imageUrl || "",
-            phone: "",
-            role: m.role === "org:admin" ? "Admin" : "Receptionist",
-            status: "Active",
-            joinedDate: m.createdAt ? new Date(m.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-            lastLogin: m.updatedAt ? new Date(m.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          }
-        })
-      } else if (currentUser) {
+      if (currentUser) {
         const currentUserEmail = currentUser.primaryEmailAddress?.emailAddress || currentUser.emailAddresses?.[0]?.emailAddress || ""
         mapped = [
           {
@@ -152,10 +131,10 @@ export function UserManagementPage() {
       setHasInitialized(true)
     }
     loadRealUsers()
-  }, [isOrgLoaded, isUserLoaded, memberships, currentUser, hasInitialized, getToken])
+  }, [isUserLoaded, currentUser, hasInitialized, getToken])
 
   // Save changes helper (no-op since we do not use local cache anymore)
-  const saveToLocalCache = (list: User[]) => {}
+  const saveToLocalCache = (_list: User[]) => {}
 
   // Add Staff Member Submit
   const handleAddSubmit = async (data: {
@@ -188,8 +167,10 @@ export function UserManagementPage() {
         setAddOpen(false)
         return
       }
-    } catch (err) {
-      console.warn("Failed to create staff via backend API, using local fallback:", err)
+    } catch (err: any) {
+      console.error("Failed to create staff via backend API:", err)
+      toast.error(err.message || "Failed to create staff member.")
+      return
     }
 
     // Local fallback
@@ -250,8 +231,10 @@ export function UserManagementPage() {
         setEditingUser(null)
         return
       }
-    } catch (err) {
-      console.warn("Failed to edit staff via backend API, using local fallback:", err)
+    } catch (err: any) {
+      console.error("Failed to edit staff via backend API:", err)
+      toast.error(err.message || "Failed to edit staff member.")
+      return
     }
 
     // Local fallback
@@ -293,8 +276,10 @@ export function UserManagementPage() {
         setTargetUser(null)
         return
       }
-    } catch (err) {
-      console.warn("Failed to reset password via backend API, using local fallback:", err)
+    } catch (err: any) {
+      console.error("Failed to reset password via backend API:", err)
+      toast.error(err.message || "Failed to reset password.")
+      return
     }
 
     setResetOpen(false)
@@ -320,8 +305,10 @@ export function UserManagementPage() {
         setTargetUser(null)
         return
       }
-    } catch (err) {
-      console.warn("Failed to deactivate staff via backend API, using local fallback:", err)
+    } catch (err: any) {
+      console.error("Failed to deactivate staff via backend API:", err)
+      toast.error(err.message || "Failed to deactivate staff member.")
+      return
     }
 
     // Local fallback
@@ -347,8 +334,10 @@ export function UserManagementPage() {
           toast.success(`${target.name} deleted successfully!`)
           return
         }
-      } catch (err) {
-        console.warn("Failed to delete user via backend API, using local fallback:", err)
+      } catch (err: any) {
+        console.error("Failed to delete user via backend API:", err)
+        toast.error(err.message || "Failed to delete user.")
+        return
       }
 
       // Local fallback
@@ -538,6 +527,16 @@ export function UserManagementPage() {
     <BaseLayout 
       title="Staff Management" 
       description="Manage hotel system operators, receptionists, and access permissions"
+      actions={
+        <Button 
+          size="sm" 
+          onClick={() => setAddOpen(true)} 
+          className="cursor-pointer gap-1.5"
+        >
+          <Plus className="h-4 w-4" />
+          Add Staff Member
+        </Button>
+      }
     >
       <div className="flex flex-col gap-4">
         {/* Metric Cards */}

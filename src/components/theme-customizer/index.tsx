@@ -224,11 +224,12 @@ export function ThemeCustomizerTrigger({ onClick }: { onClick: () => void }) {
       onClick={onClick}
       size="icon"
       className={cn(
-        "fixed top-1/2 -translate-y-1/2 h-12 w-12 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer",
-        sidebarConfig.side === "left" ? "right-4" : "left-4"
+        "fixed bottom-6 h-10 w-10 rounded-full shadow-md z-50 bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer group transition-all duration-300 hover:scale-110",
+        sidebarConfig.side === "left" ? "right-6" : "left-6"
       )}
+      title="Customize Theme"
     >
-      <Settings className="h-5 w-5" />
+      <Settings className="h-4.5 w-4.5 transition-transform duration-500 group-hover:rotate-90" />
     </Button>
   )
 }

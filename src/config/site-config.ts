@@ -8,6 +8,7 @@ import {
   BarChart3,
   Settings,
   User,
+  MessageSquare,
   type LucideIcon,
 } from "lucide-react"
 
@@ -108,6 +109,11 @@ export const adminNavGroups: NavGroup[] = [
     label: "System",
     items: [
       {
+        title: "Support Desk",
+        url: "/admin/support",
+        icon: MessageSquare,
+      },
+      {
         title: "Reports",
         url: "/admin/reports",
         icon: BarChart3,
@@ -133,28 +139,33 @@ export const receptionistNavGroups: NavGroup[] = [
     items: [
       {
         title: "Dashboard",
-        url: "/admin/dashboard",
+        url: "/receptionist/dashboard",
         icon: LayoutDashboard,
       },
       {
         title: "Bookings",
-        url: "/admin/bookings",
+        url: "/receptionist/bookings",
         icon: ClipboardList,
       },
       {
         title: "Booking Calendar",
-        url: "/admin/calendar",
+        url: "/receptionist/calendar",
         icon: CalendarDays,
       },
       {
         title: "Rooms",
-        url: "/admin/rooms",
+        url: "/receptionist/rooms",
         icon: Bed,
       },
       {
         title: "Guests",
-        url: "/admin/guests",
+        url: "/receptionist/guests",
         icon: Contact,
+      },
+      {
+        title: "Support Desk",
+        url: "/receptionist/support",
+        icon: MessageSquare,
       },
     ],
   },
@@ -178,6 +189,11 @@ export const guestNavGroups: NavGroup[] = [
         title: "My Reservations",
         url: "/guest/bookings",
         icon: ClipboardList,
+      },
+      {
+        title: "Support & Help",
+        url: "/guest/support",
+        icon: MessageSquare,
       },
       {
         title: "My Profile",

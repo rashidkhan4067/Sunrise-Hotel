@@ -105,7 +105,19 @@ export function EditUserDialog({ open, onOpenChange, user, onEdit }: EditUserDia
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1 col-span-2">
+            <div className="space-y-1">
+              <Label htmlFor="edit-role">Role</Label>
+              <Select value={role} onValueChange={setRole}>
+                <SelectTrigger id="edit-role" className="cursor-pointer">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Admin">Admin</SelectItem>
+                  <SelectItem value="Receptionist">Receptionist</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
               <Label htmlFor="edit-status">Status</Label>
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger id="edit-status" className="cursor-pointer">

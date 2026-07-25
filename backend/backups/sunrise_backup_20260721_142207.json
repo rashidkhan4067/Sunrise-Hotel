@@ -1,0 +1,596 @@
+{
+  "version": "1.0.0",
+  "exported_at": "2026-07-21T14:22:07.231953",
+  "counts": {
+    "rooms": 12,
+    "guests": 17,
+    "bookings": 39,
+    "audit_logs": 4
+  },
+  "data": {
+    "rooms": [
+      {
+        "id": 23,
+        "room_number": "101",
+        "room_type": "SINGLE",
+        "status": "AVAILABLE",
+        "price_per_night": 12000.0,
+        "is_clean": false,
+        "is_inspected": false
+      },
+      {
+        "id": 24,
+        "room_number": "102",
+        "room_type": "SINGLE",
+        "status": "AVAILABLE",
+        "price_per_night": 12000.0,
+        "is_clean": true,
+        "is_inspected": true
+      },
+      {
+        "id": 25,
+        "room_number": "103",
+        "room_type": "DOUBLE",
+        "status": "OCCUPIED",
+        "price_per_night": 18000.0,
+        "is_clean": false,
+        "is_inspected": false
+      },
+      {
+        "id": 26,
+        "room_number": "104",
+        "room_type": "DOUBLE",
+        "status": "AVAILABLE",
+        "price_per_night": 18000.0,
+        "is_clean": true,
+        "is_inspected": true
+      },
+      {
+        "id": 27,
+        "room_number": "105",
+        "room_type": "DELUXE",
+        "status": "MAINTENANCE",
+        "price_per_night": 25000.0,
+        "is_clean": true,
+        "is_inspected": true
+      },
+      {
+        "id": 28,
+        "room_number": "201",
+        "room_type": "DOUBLE",
+        "status": "AVAILABLE",
+        "price_per_night": 20000.0,
+        "is_clean": false,
+        "is_inspected": false
+      },
+      {
+        "id": 29,
+        "room_number": "202",
+        "room_type": "DOUBLE",
+        "status": "AVAILABLE",
+        "price_per_night": 20000.0,
+        "is_clean": true,
+        "is_inspected": true
+      },
+      {
+        "id": 30,
+        "room_number": "203",
+        "room_type": "SUITE",
+        "status": "OCCUPIED",
+        "price_per_night": 45000.0,
+        "is_clean": true,
+        "is_inspected": true
+      },
+      {
+        "id": 31,
+        "room_number": "204",
+        "room_type": "SUITE",
+        "status": "AVAILABLE",
+        "price_per_night": 45000.0,
+        "is_clean": true,
+        "is_inspected": true
+      },
+      {
+        "id": 32,
+        "room_number": "301",
+        "room_type": "DELUXE",
+        "status": "AVAILABLE",
+        "price_per_night": 28000.0,
+        "is_clean": true,
+        "is_inspected": true
+      },
+      {
+        "id": 33,
+        "room_number": "302",
+        "room_type": "SUITE",
+        "status": "AVAILABLE",
+        "price_per_night": 55000.0,
+        "is_clean": true,
+        "is_inspected": true
+      },
+      {
+        "id": 43,
+        "room_number": "P801",
+        "room_type": "SUITE",
+        "status": "MAINTENANCE",
+        "price_per_night": 250.0,
+        "is_clean": true,
+        "is_inspected": true
+      }
+    ],
+    "guests": [
+      {
+        "id": 12,
+        "full_name": "Aisha Rehman",
+        "email": "aisha.rehman@yahoo.com",
+        "phone_number": "+923214567890",
+        "document_number": "35202-9876543-2"
+      },
+      {
+        "id": 17,
+        "full_name": "Amna Bibi",
+        "email": "amna.bibi@gmail.com",
+        "phone_number": "+923221234987",
+        "document_number": "35201-9988776-2"
+      },
+      {
+        "id": 14,
+        "full_name": "Bilal Ahmed",
+        "email": "bilal.ahmed@gmail.com",
+        "phone_number": "+923129998887",
+        "document_number": "17301-5556667-7"
+      },
+      {
+        "id": 25,
+        "full_name": "Fawad Alam",
+        "email": "fawad.alam@gmail.com",
+        "phone_number": "+923362223334",
+        "document_number": "42301-7776665-1"
+      },
+      {
+        "id": 24,
+        "full_name": "Haris Rauf",
+        "email": "haris.rauf@gmail.com",
+        "phone_number": "+923067778889",
+        "document_number": "35202-3334445-9"
+      },
+      {
+        "id": 34,
+        "full_name": "John Phase8",
+        "email": "john.phase8@test.com",
+        "phone_number": "8881234567",
+        "document_number": "DOC-P8"
+      },
+      {
+        "id": 20,
+        "full_name": "Kamran Khan",
+        "email": "kamran.khan@yahoo.com",
+        "phone_number": "+923135556667",
+        "document_number": "21103-7788990-5"
+      },
+      {
+        "id": 11,
+        "full_name": "Muhammad Ali",
+        "email": "muhammad.ali@gmail.com",
+        "phone_number": "+923001234567",
+        "document_number": "42201-1234567-1"
+      },
+      {
+        "id": 26,
+        "full_name": "Muhammad Rashid Shafique",
+        "email": "rashidkhang9680@gmail.com",
+        "phone_number": "03048541623",
+        "document_number": "3230210657217"
+      },
+      {
+        "id": 21,
+        "full_name": "Nida Yasir",
+        "email": "nida.yasir@outlook.com",
+        "phone_number": "+923058887776",
+        "document_number": "33102-1112223-6"
+      },
+      {
+        "id": 23,
+        "full_name": "Sana Javed",
+        "email": "sana.javed@gmail.com",
+        "phone_number": "+923149991112",
+        "document_number": "42201-5556667-8"
+      },
+      {
+        "id": 19,
+        "full_name": "Sobia Malik",
+        "email": "sobia.malik@gmail.com",
+        "phone_number": "+923461122334",
+        "document_number": "61101-2233445-4"
+      },
+      {
+        "id": 22,
+        "full_name": "Tariq Mahmood",
+        "email": "tariq.mahmood@gmail.com",
+        "phone_number": "+923234445556",
+        "document_number": "38403-9998887-7"
+      },
+      {
+        "id": 15,
+        "full_name": "Usman Tariq",
+        "email": "usman.tariq@gmail.com",
+        "phone_number": "+923457776665",
+        "document_number": "33100-2233445-5"
+      },
+      {
+        "id": 18,
+        "full_name": "Yasir Hussain",
+        "email": "yasir.hussain@outlook.com",
+        "phone_number": "+923348765432",
+        "document_number": "42101-4455667-3"
+      },
+      {
+        "id": 16,
+        "full_name": "Zafar Iqbal",
+        "email": "zafar.iqbal@yahoo.com",
+        "phone_number": "+923019876543",
+        "document_number": "34101-1122334-1"
+      },
+      {
+        "id": 13,
+        "full_name": "Zainab Fatima",
+        "email": "zainab.fatima@outlook.com",
+        "phone_number": "+923335551234",
+        "document_number": "37405-1122334-4"
+      }
+    ],
+    "bookings": [
+      {
+        "booking_id": "a64855e7-53d1-4253-ab9d-818c4c0248c4",
+        "guest_id": 34,
+        "room_number": "P801",
+        "check_in": "2026-07-21",
+        "check_out": "2026-07-23",
+        "total_price": 550.0,
+        "status": "CHECKED_IN"
+      },
+      {
+        "booking_id": "800d7993-8af3-4551-98d9-2f8e83cd364e",
+        "guest_id": 26,
+        "room_number": "302",
+        "check_in": "2026-07-21",
+        "check_out": "2026-07-23",
+        "total_price": 110000.0,
+        "status": "CANCELLED"
+      },
+      {
+        "booking_id": "fb161d0a-ce5e-4cca-b258-e9bb632521c3",
+        "guest_id": 12,
+        "room_number": "101",
+        "check_in": "2026-07-20",
+        "check_out": "2026-07-22",
+        "total_price": 200.0,
+        "status": "CONFIRMED"
+      },
+      {
+        "booking_id": "9de77438-bd30-4aa3-951c-c5b4a73bdfa3",
+        "guest_id": 26,
+        "room_number": "302",
+        "check_in": "2026-08-03",
+        "check_out": "2026-08-06",
+        "total_price": 165000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "ab3d815b-2ce3-4727-857d-67f7a82b2a34",
+        "guest_id": 26,
+        "room_number": "302",
+        "check_in": "2026-07-19",
+        "check_out": "2026-07-20",
+        "total_price": 55000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "69acda66-2457-4eb5-8089-2f45fd564fda",
+        "guest_id": 26,
+        "room_number": "302",
+        "check_in": "2026-07-19",
+        "check_out": "2026-07-20",
+        "total_price": 55000.0,
+        "status": "CANCELLED"
+      },
+      {
+        "booking_id": "1d6a9a55-10e3-4b1a-84e4-742d1ad462ad",
+        "guest_id": 26,
+        "room_number": "301",
+        "check_in": "2026-07-19",
+        "check_out": "2026-07-20",
+        "total_price": 28000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "db926a52-7d51-4296-adb4-b89a9666579e",
+        "guest_id": 26,
+        "room_number": "101",
+        "check_in": "2026-07-19",
+        "check_out": "2026-07-20",
+        "total_price": 12000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "e2bc0954-d199-4a2d-bc3d-04673222e803",
+        "guest_id": 16,
+        "room_number": "102",
+        "check_in": "2026-07-18",
+        "check_out": "2026-07-19",
+        "total_price": 12000.0,
+        "status": "PENDING"
+      },
+      {
+        "booking_id": "44992a55-4a6e-4194-b6dc-79e92d9d4538",
+        "guest_id": 19,
+        "room_number": "204",
+        "check_in": "2026-06-29",
+        "check_out": "2026-07-03",
+        "total_price": 180000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "96fc6cab-0529-42f3-8ce1-2dd8617aadcf",
+        "guest_id": 23,
+        "room_number": "204",
+        "check_in": "2026-07-03",
+        "check_out": "2026-07-06",
+        "total_price": 135000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "de082534-8994-4f07-ae82-85ddbe076940",
+        "guest_id": 18,
+        "room_number": "302",
+        "check_in": "2026-06-21",
+        "check_out": "2026-06-23",
+        "total_price": 110000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "403fb629-3e24-4f19-9642-287029f9b3e4",
+        "guest_id": 25,
+        "room_number": "102",
+        "check_in": "2026-07-14",
+        "check_out": "2026-07-16",
+        "total_price": 24000.0,
+        "status": "CANCELLED"
+      },
+      {
+        "booking_id": "dd9d24b0-5742-4300-98eb-af3863846fb0",
+        "guest_id": 17,
+        "room_number": "201",
+        "check_in": "2026-06-30",
+        "check_out": "2026-07-01",
+        "total_price": 20000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "119e08d5-c88f-4305-b6c6-2111faa63c00",
+        "guest_id": 18,
+        "room_number": "201",
+        "check_in": "2026-06-25",
+        "check_out": "2026-06-27",
+        "total_price": 40000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "798778b1-ff5c-46c7-8238-77d4005bc04d",
+        "guest_id": 24,
+        "room_number": "103",
+        "check_in": "2026-07-15",
+        "check_out": "2026-07-18",
+        "total_price": 54000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "7fdd3e0d-525b-4696-9aba-cfec7232304f",
+        "guest_id": 21,
+        "room_number": "102",
+        "check_in": "2026-06-24",
+        "check_out": "2026-06-27",
+        "total_price": 36000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "6103c402-b700-4269-a4e0-1361e94c2539",
+        "guest_id": 25,
+        "room_number": "203",
+        "check_in": "2026-07-03",
+        "check_out": "2026-07-07",
+        "total_price": 180000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "6f014fea-6a96-4868-bff4-d253583757a7",
+        "guest_id": 17,
+        "room_number": "103",
+        "check_in": "2026-07-13",
+        "check_out": "2026-07-14",
+        "total_price": 18000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "eb6b9c8d-919f-4871-af6c-e1ecc96e6a95",
+        "guest_id": 21,
+        "room_number": "104",
+        "check_in": "2026-06-27",
+        "check_out": "2026-07-01",
+        "total_price": 72000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "c56a6c1f-1742-493b-b5f1-fb8b1bdffc5c",
+        "guest_id": 18,
+        "room_number": "105",
+        "check_in": "2026-06-25",
+        "check_out": "2026-06-29",
+        "total_price": 100000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "7ac6b20f-0412-4a97-bfdc-f1ee69d15197",
+        "guest_id": 25,
+        "room_number": "201",
+        "check_in": "2026-07-13",
+        "check_out": "2026-07-15",
+        "total_price": 40000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "1e568141-c313-4033-9565-19ff3caeebde",
+        "guest_id": 19,
+        "room_number": "101",
+        "check_in": "2026-06-21",
+        "check_out": "2026-06-22",
+        "total_price": 12000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "e7090b8b-ad70-4c0e-8c25-f4585336fb3c",
+        "guest_id": 20,
+        "room_number": "302",
+        "check_in": "2026-07-01",
+        "check_out": "2026-07-05",
+        "total_price": 220000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "a5eb4e34-a2b5-44a1-87e9-2f427bbf427a",
+        "guest_id": 25,
+        "room_number": "302",
+        "check_in": "2026-06-23",
+        "check_out": "2026-06-24",
+        "total_price": 55000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "0e8ee8b4-b2e9-419c-b27e-bea3cfe211a6",
+        "guest_id": 21,
+        "room_number": "103",
+        "check_in": "2026-07-07",
+        "check_out": "2026-07-11",
+        "total_price": 72000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "fc6b22ea-bbd7-4610-a3a4-46c504f5ce45",
+        "guest_id": 20,
+        "room_number": "102",
+        "check_in": "2026-06-24",
+        "check_out": "2026-06-26",
+        "total_price": 24000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "42409c7c-63b1-4be8-a4af-d296e963293d",
+        "guest_id": 25,
+        "room_number": "201",
+        "check_in": "2026-06-28",
+        "check_out": "2026-07-01",
+        "total_price": 60000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "6268bd03-2481-46aa-b944-1fc56ce174fe",
+        "guest_id": 16,
+        "room_number": "203",
+        "check_in": "2026-07-04",
+        "check_out": "2026-07-07",
+        "total_price": 135000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "542b6b90-48f5-48af-9ff2-294dc5f56caf",
+        "guest_id": 21,
+        "room_number": "102",
+        "check_in": "2026-07-11",
+        "check_out": "2026-07-13",
+        "total_price": 24000.0,
+        "status": "CANCELLED"
+      },
+      {
+        "booking_id": "a0bc558f-ea95-4a2d-a65b-ae2407634395",
+        "guest_id": 16,
+        "room_number": "103",
+        "check_in": "2026-07-01",
+        "check_out": "2026-07-04",
+        "total_price": 54000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "2bff00cd-5fa9-4478-862c-9f39db58383e",
+        "guest_id": 24,
+        "room_number": "104",
+        "check_in": "2026-07-08",
+        "check_out": "2026-07-09",
+        "total_price": 18000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "721ec15c-4e5c-4a0c-ae82-672cce67bb95",
+        "guest_id": 25,
+        "room_number": "202",
+        "check_in": "2026-06-24",
+        "check_out": "2026-06-25",
+        "total_price": 20000.0,
+        "status": "CANCELLED"
+      },
+      {
+        "booking_id": "4dca9888-a620-400a-a441-d680f254e143",
+        "guest_id": 16,
+        "room_number": "105",
+        "check_in": "2026-06-25",
+        "check_out": "2026-06-26",
+        "total_price": 25000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "d7b6c1d6-162a-4142-a9ac-d36c067f8d93",
+        "guest_id": 13,
+        "room_number": "203",
+        "check_in": "2026-07-20",
+        "check_out": "2026-07-24",
+        "total_price": 180000.0,
+        "status": "CONFIRMED"
+      },
+      {
+        "booking_id": "16265d3d-4b86-4f2a-a5ff-ce08519ae593",
+        "guest_id": 15,
+        "room_number": "201",
+        "check_in": "2026-07-14",
+        "check_out": "2026-07-18",
+        "total_price": 80000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "c4af4686-5ef1-4b9c-969e-3d9234d59618",
+        "guest_id": 14,
+        "room_number": "102",
+        "check_in": "2026-07-15",
+        "check_out": "2026-07-18",
+        "total_price": 36000.0,
+        "status": "CHECKED_OUT"
+      },
+      {
+        "booking_id": "727ea49c-77d6-4548-b11c-1f56bcf9eef7",
+        "guest_id": 12,
+        "room_number": "104",
+        "check_in": "2026-07-18",
+        "check_out": "2026-07-20",
+        "total_price": 36000.0,
+        "status": "CONFIRMED"
+      },
+      {
+        "booking_id": "f730c7f7-2f5e-42a2-864d-1df94c8e93c0",
+        "guest_id": 11,
+        "room_number": "103",
+        "check_in": "2026-07-18",
+        "check_out": "2026-07-21",
+        "total_price": 54000.0,
+        "status": "CHECKED_IN"
+      }
+    ]
+  }
+}

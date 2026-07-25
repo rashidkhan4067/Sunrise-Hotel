@@ -36,7 +36,7 @@ interface Props {
 
 export function ReportTable({ rows, loading }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("date")
-  const [sortDir, setSortDir] = useState<SortDir>("asc")
+  const [sortDir, setSortDir] = useState<SortDir>("desc")
   const [page, setPage] = useState(1)
 
   const handleSort = (key: SortKey) => {
@@ -44,15 +44,19 @@ export function ReportTable({ rows, loading }: Props) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"))
     } else {
       setSortKey(key)
-      setSortDir("asc")
+      setSortDir("desc")
     }
     setPage(1)
   }
 
   const sorted = useMemo(() => {
     return [...rows].sort((a, b) => {
-      const av = a[sortKey]
-      const bv = b[sortKey]
+      let av: any = a[sortKey]
+      let bv: any = b[sortKey]
+      if (sortKey === "date") {
+        av = new Date(a.date).getTime() || 0
+        bv = new Date(b.date).getTime() || 0
+      }
       const cmp = av < bv ? -1 : av > bv ? 1 : 0
       return sortDir === "asc" ? cmp : -cmp
     })

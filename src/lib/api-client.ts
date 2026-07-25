@@ -26,17 +26,35 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
   if (!response.ok) {
     const errData = await response.json().catch(() => ({}))
-    const errorMessage =
-      errData.error ||
-      errData.detail ||
-      errData.message ||
-      errData.phone_number ||
-      errData.document_number ||
-      errData.room_number ||
-      errData.price_per_night ||
-      `Request failed with status ${response.status}`
+    
+    let errorMessage = `Request failed with status ${response.status}`
+    if (errData) {
+      if (errData.error && typeof errData.error === "string") {
+        errorMessage = errData.error
+      } else if (errData.detail && typeof errData.detail === "string") {
+        errorMessage = errData.detail
+      } else if (errData.message && typeof errData.message === "string") {
+        errorMessage = errData.message
+      } else if (errData.errors && Array.isArray(errData.errors) && errData.errors[0]) {
+        errorMessage = errData.errors[0].longMessage || errData.errors[0].message || errorMessage
+      } else {
+        // Extract from Django DRF serializer dictionary: { "field": ["error"] }
+        for (const key in errData) {
+          if (Object.prototype.hasOwnProperty.call(errData, key)) {
+            const val = errData[key]
+            if (Array.isArray(val) && typeof val[0] === "string") {
+              errorMessage = `${key}: ${val[0]}`
+              break
+            } else if (typeof val === "string") {
+              errorMessage = `${key}: ${val}`
+              break
+            }
+          }
+        }
+      }
+    }
 
-    throw new Error(typeof errorMessage === "string" ? errorMessage : JSON.stringify(errorMessage))
+    throw new Error(errorMessage)
   }
 
   if (response.status === 204) {
@@ -51,6 +69,9 @@ export const apiClient = {
 
   post: <T>(endpoint: string, body?: any, token?: string) =>
     request<T>(endpoint, { method: "POST", body, token }),
+
+  put: <T>(endpoint: string, body?: any, token?: string) =>
+    request<T>(endpoint, { method: "PUT", body, token }),
 
   patch: <T>(endpoint: string, body?: any, token?: string) =>
     request<T>(endpoint, { method: "PATCH", body, token }),

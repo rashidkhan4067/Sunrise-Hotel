@@ -1,6 +1,6 @@
 "use client"
 
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { Button } from "@/components/ui/button"
 import { Plus, UserPlus, AlertTriangle, RefreshCw } from "lucide-react"
@@ -18,14 +18,17 @@ import {
   QuickActions,
   OccupancyTrendChart,
 } from "./components/dashboard-components"
+import { CtaBanner } from "@/components/shared"
 
 export default function Page() {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const prefix = pathname.startsWith("/receptionist") ? "/receptionist" : "/admin"
   const { data, loading, error } = useDashboardData()
 
-  const handleNewBooking = () => navigate("/admin/bookings?action=new")
-  const handleAddGuest = () => navigate("/admin/guests?action=new")
-  const handleAddRoom = () => navigate("/admin/rooms?action=new")
+  const handleNewBooking = () => navigate(`${prefix}/bookings?action=new`)
+  const handleAddGuest = () => navigate(`${prefix}/guests?action=new`)
+  const handleAddRoom = () => navigate(`${prefix}/rooms?action=new`)
 
   return (
     <BaseLayout
@@ -73,6 +76,18 @@ export default function Page() {
         </div>
       ) : data ? (
         <div className="@container/main px-4 lg:px-6 space-y-6">
+          {/* Operational Receptionist CTA Banner */}
+          <CtaBanner
+            id="admin-operations-banner"
+            variant="operational"
+            title="Front Desk Operations Alert"
+            description={`${data.summary.todayCheckInsCount} guest check-ins scheduled today. Access quick reservation entry or receptionist deskbar hotkeys.`}
+            actionLabel="Quick Check-In"
+            onAction={handleNewBooking}
+            secondaryActionLabel="View Calendar"
+            onSecondaryAction={() => navigate(`${prefix}/calendar`)}
+          />
+
           {/* 1. Summary Cards — clicking navigates to filtered views */}
           <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
             {[
@@ -84,7 +99,7 @@ export default function Page() {
                 footerText: "Clean & inspected",
                 footerIcon: TrendingUp,
                 footerSubtext: "Available for instant booking",
-                onClick: () => navigate("/admin/rooms?status=available"),
+                onClick: () => navigate(`${prefix}/rooms?status=available`),
               },
               {
                 title: "Occupied Rooms",
@@ -93,7 +108,7 @@ export default function Page() {
                 footerText: "Currently in-house",
                 footerIcon: TrendingUp,
                 footerSubtext: "Checked in guests",
-                onClick: () => navigate("/admin/rooms?status=occupied"),
+                onClick: () => navigate(`${prefix}/rooms?status=occupied`),
               },
               {
                 title: "Today's Check-ins",
@@ -103,7 +118,7 @@ export default function Page() {
                 footerText: "Scheduled arrivals",
                 footerIcon: TrendingUp,
                 footerSubtext: "Front desk check-in queue",
-                onClick: () => navigate("/admin/bookings?status=CHECKED_IN"),
+                onClick: () => navigate(`${prefix}/bookings?status=CHECKED_IN`),
               },
               {
                 title: "Today's Check-outs",
@@ -112,7 +127,7 @@ export default function Page() {
                 badgeText: "Today",
                 footerText: "Scheduled departures",
                 footerSubtext: "Pending room release & cleaning",
-                onClick: () => navigate("/admin/bookings?status=CHECKED_OUT"),
+                onClick: () => navigate(`${prefix}/bookings?status=CHECKED_OUT`),
               },
             ].map((card) => (
               <div

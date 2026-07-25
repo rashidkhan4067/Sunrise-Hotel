@@ -1,7 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useEffect, useState } from "react"
-import { useAuth as useClerkAuth, useUser as useClerkUser, useClerk, useOrganization } from "@clerk/react"
+import { useAuth as useClerkAuth, useUser as useClerkUser, useClerk } from "@clerk/react"
 import { apiClient } from "@/lib/api-client"
 
 export type LoginResult = boolean | { status: "needs_second_factor"; strategy: "totp" | "phone_code" }
@@ -27,7 +27,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
-const resolveUserRole = (userObj: any, membershipRole?: string | null): string => {
+const resolveUserRole = (userObj: any): string => {
   if (!userObj) return "org:member"
 
   const emails = [
@@ -46,27 +46,22 @@ const resolveUserRole = (userObj: any, membershipRole?: string | null): string =
     return "org:admin"
   }
 
-  // Prefer org membership role from Clerk (org:admin / org:member)
-  if (membershipRole) {
-    return membershipRole
-  }
-
   // Fallback: check publicMetadata for role field
   const metaRole = userObj.publicMetadata?.role
   if (metaRole === "org:admin" || metaRole === "admin" || metaRole === "ADMIN") {
     return "org:admin"
+  }
+  if (metaRole === "receptionist" || metaRole === "RECEPTIONIST") {
+    return "receptionist"
   }
 
   return "org:member"
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || ""
-
   const clerkAuth = useClerkAuth()
   const clerkUser = useClerkUser()
   const clerk = useClerk()
-  const { membership } = useOrganization()
 
   const signInObj = clerk.client?.signIn
   const signUpObj = clerk.client?.signUp
@@ -120,10 +115,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       resolvedFirst = parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(" ")
     }
 
-    const resolvedRole = resolveUserRole({
+    let resolvedRole = resolveUserRole({
       primaryEmailAddress: { emailAddress: emailAddress },
       emailAddresses: [{ emailAddress: emailAddress }]
     })
+
+    if (resolvedRole === "org:member") {
+      try {
+        const cacheStr = localStorage.getItem("registered_users_cache")
+        if (cacheStr) {
+          const cache = JSON.parse(cacheStr)
+          const matched = cache.find((u: any) => u.email?.toLowerCase() === emailAddress.toLowerCase())
+          if (matched) {
+            resolvedRole = matched.role === "Admin" ? "org:admin" : "receptionist"
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to check registered users cache during seed:", e)
+      }
+    }
 
     const tempUser = {
       id: "temp",
@@ -176,18 +186,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (clerkAuth.isSignedIn) {
       // Only set cache when user details are fully loaded from Clerk API
       if (clerkUser.user) {
-        // Auto-activate organization if the user has memberships but none is active
-        const memberships = (clerkUser.user as any).organizationMemberships || []
-        if (!clerkAuth.orgId && memberships.length > 0) {
-          const firstOrgId = memberships[0].organization.id
-          console.log("[AuthContext] Auto-activating organization:", firstOrgId)
-          clerk.setActive({ organization: firstOrgId })
-          return
-        }
-
         const userObj = clerkUser.user
         const email = userObj.primaryEmailAddress?.emailAddress || userObj.emailAddresses?.[0]?.emailAddress || ""
-        const activeRole = resolveUserRole(userObj, membership?.role)
+        const activeRole = resolveUserRole(userObj)
         
         // Sync user details with Django backend
         const fullName = `${userObj.firstName || ""} ${userObj.lastName || ""}`.trim()
@@ -260,7 +261,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     }
-  }, [isClerkLoaded, clerkAuth.isSignedIn, clerkAuth.orgId, clerkUser.user, membership?.role, isAuthenticating])
+  }, [isClerkLoaded, clerkAuth.isSignedIn, clerkUser.user, isAuthenticating])
 
 
 

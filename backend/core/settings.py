@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'guests.apps.GuestsConfig',
     'bookings.apps.BookingsConfig',
     'reports.apps.ReportsConfig',
+    'notifications.apps.NotificationsConfig',
+    'support',
 ]
 
 MIDDLEWARE = [
@@ -158,12 +160,19 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.ScopedRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/day',
-        'user': '1000/day',
+        'anon': '60/minute',
+        'user': '300/minute',
+        'auth': '10/minute',
     },
 }
+
+# Security Compliance Headers & Hardening
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
 
 CLERK_PEM_PUBLIC_KEY = os.getenv('CLERK_PEM_PUBLIC_KEY', '')
 

@@ -43,9 +43,32 @@ export interface ReportRow {
 
 // ─── Summary ────────────────────────────────────────────────────
 
+export interface FinancialKPIs {
+  adr: number
+  revpar: number
+  alos: number
+  roomRevenue: number
+  taxRevenue: number
+}
+
+export interface ForecastingData {
+  projectedRevenueNext30Days: number
+  forwardBookingsCount: number
+}
+
+export interface OccupancyByRoomTypeData {
+  roomType: string
+  totalRooms: number
+  occupiedRooms: number
+  occupancyRate: number
+}
+
 export interface ReportSummary {
   totalBookings: number
   totalRevenue: number
   occupancyRate: number  // 0–100
   activeGuests: number
+  financials?: FinancialKPIs
+  forecasting?: ForecastingData
+  occupancyByRoomType?: OccupancyByRoomTypeData[]
 }

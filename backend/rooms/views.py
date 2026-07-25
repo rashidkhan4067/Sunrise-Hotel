@@ -6,6 +6,7 @@ from .models import Room
 from .serializers import RoomSerializer
 from accounts.permissions import IsHotelStaff
 from bookings.models import Booking
+from reports.models import log_audit_event
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -42,6 +43,14 @@ class RoomViewSet(viewsets.ModelViewSet):
         if floor:
             queryset = queryset.filter(floor=floor)
             
+        is_clean = self.request.query_params.get('is_clean')
+        if is_clean is not None and is_clean != '' and is_clean != 'all':
+            queryset = queryset.filter(is_clean=is_clean.lower() == 'true')
+
+        is_inspected = self.request.query_params.get('is_inspected')
+        if is_inspected is not None and is_inspected != '' and is_inspected != 'all':
+            queryset = queryset.filter(is_inspected=is_inspected.lower() == 'true')
+            
         ordering = self.request.query_params.get('ordering')
         if ordering:
             queryset = queryset.order_by(ordering)
@@ -69,7 +78,17 @@ class RoomViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
             
-        return super().create(request, *args, **kwargs)
+        res = super().create(request, *args, **kwargs)
+        if res.status_code == 201:
+            log_audit_event(
+                user=request.user,
+                action='ROOM_CREATED',
+                description=f"Created Room {request.data.get('room_number')}",
+                model_name='Room',
+                object_id=res.data.get('id'),
+                request=request
+            )
+        return res
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
@@ -109,6 +128,15 @@ class RoomViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
+
+        log_audit_event(
+            user=request.user,
+            action='ROOM_UPDATED',
+            description=f"Updated details for Room {instance.room_number}",
+            model_name='Room',
+            object_id=instance.id,
+            request=request
+        )
         return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):
@@ -128,9 +156,16 @@ class RoomViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
             
-        # Soft archive
+        log_audit_event(
+            user=request.user,
+            action='ROOM_DELETED',
+            description=f"Soft deleted/archived Room {instance.room_number}",
+            model_name='Room',
+            object_id=instance.id,
+            request=request
+        )
         instance.is_archived = True
-        instance.save()
+        instance.soft_delete()
         return Response({"status": "Room archived successfully"}, status=status.HTTP_200_OK)
 
     def retrieve(self, request, *args, **kwargs):
@@ -235,10 +270,62 @@ class RoomViewSet(viewsets.ModelViewSet):
         occupied = Room.objects.filter(status='OCCUPIED', is_archived=False).count()
         cleaning = Room.objects.filter(status='CLEANING', is_archived=False).count()
         maintenance = Room.objects.filter(status='MAINTENANCE', is_archived=False).count()
+        dirty = Room.objects.filter(is_clean=False, is_archived=False).count()
+        uninspected = Room.objects.filter(is_inspected=False, is_archived=False).count()
         return Response({
             'total': total,
             'available': available,
             'occupied': occupied,
             'cleaning': cleaning,
-            'maintenance': maintenance
+            'maintenance': maintenance,
+            'dirty': dirty,
+            'uninspected': uninspected,
         })
+
+    @action(detail=True, methods=['POST'], url_path='toggle-clean')
+    def toggle_clean(self, request, pk=None):
+        room = self.get_object()
+        room.is_clean = not room.is_clean
+        if not room.is_clean:
+            room.is_inspected = False
+        room.save()
+
+        log_audit_event(
+            user=request.user,
+            action='TOGGLE_CLEAN',
+            description=f"Marked Room {room.room_number} as {'CLEAN' if room.is_clean else 'DIRTY'}",
+            model_name='Room',
+            object_id=room.id,
+            request=request
+        )
+        return Response({
+            "status": "success",
+            "is_clean": room.is_clean,
+            "is_inspected": room.is_inspected
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['POST'], url_path='toggle-inspect')
+    def toggle_inspect(self, request, pk=None):
+        room = self.get_object()
+        if not room.is_clean and not room.is_inspected:
+            return Response(
+                {"error": "Cannot inspect a dirty room. Clean the room first."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        room.is_inspected = not room.is_inspected
+        room.save()
+
+        log_audit_event(
+            user=request.user,
+            action='TOGGLE_INSPECT',
+            description=f"Marked Room {room.room_number} as {'INSPECTED' if room.is_inspected else 'PENDING INSPECTION'}",
+            model_name='Room',
+            object_id=room.id,
+            request=request
+        )
+        return Response({
+            "status": "success",
+            "is_clean": room.is_clean,
+            "is_inspected": room.is_inspected
+        }, status=status.HTTP_200_OK)
+

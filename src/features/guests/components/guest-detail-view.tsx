@@ -44,7 +44,7 @@ export function GuestDetailView({ open, onOpenChange, guest }: GuestDetailViewPr
       setError(null)
       try {
         const token = await getToken()
-        if (!token) return
+        if (!guest || !token) return
         const data = await fetchGuestBookings(guest.id, token)
         if (active) {
           setBookings(Array.isArray(data) ? data : (data.results || []))

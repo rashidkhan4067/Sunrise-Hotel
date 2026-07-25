@@ -1,7 +1,7 @@
 from datetime import date
 from rest_framework import serializers
 from django.db.models import Q
-from .models import Booking
+from .models import Booking, Folio, FolioItem
 from rooms.models import Room
 from guests.models import Guest
 from rooms.serializers import RoomSerializer
@@ -64,7 +64,7 @@ class BookingSerializer(serializers.ModelSerializer):
         # Exclude cancelled or checked-out bookings
         overlap_query &= ~Q(status__in=['CANCELLED', 'CHECKED_OUT'])
 
-        overlapping_bookings = Booking.objects.filter(overlap_query)
+        overlapping_bookings = Booking.objects.filter(overlap_query, is_deleted=False)
         if overlapping_bookings.exists():
             raise serializers.ValidationError({
                 "room": "This room is already booked for the selected dates."
@@ -80,3 +80,22 @@ class BookingSerializer(serializers.ModelSerializer):
             attrs['total_price'] = room.price_per_night * num_nights
 
         return attrs
+
+
+class FolioItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FolioItem
+        fields = ('id', 'folio', 'item_type', 'description', 'amount', 'created_at')
+
+
+class FolioSerializer(serializers.ModelSerializer):
+    items = FolioItemSerializer(many=True, read_only=True)
+    balance = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Folio
+        fields = ('id', 'booking', 'is_closed', 'items', 'balance', 'created_at')
+
+    def get_balance(self, obj):
+        total = sum(item.amount for item in obj.items.all())
+        return total
