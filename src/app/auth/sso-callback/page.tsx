@@ -1,6 +1,11 @@
 import { AuthenticateWithRedirectCallback } from "@clerk/react"
+import { IS_DEMO_MODE } from "@/lib/demo-data"
+import { Navigate } from "react-router-dom"
 
 export default function SSOCallbackPage() {
+  // SSO is disabled in demo mode — redirect to home
+  if (IS_DEMO_MODE) return <Navigate to="/" replace />
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4 text-center">

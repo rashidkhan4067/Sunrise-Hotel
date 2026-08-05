@@ -53,10 +53,10 @@ export function AppSidebar({ role = "admin", ...props }: AppSidebarProps) {
 
   return (
     <Sidebar {...props}>
-      <SidebarHeader>
+      <SidebarHeader className="h-(--header-height) flex justify-center border-b border-sidebar-border px-2 py-0">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
+            <SidebarMenuButton size="lg" asChild className="h-10">
               <Link to={dashboardUrl}>
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <Logo size={brand.logoSize} className="text-current" />

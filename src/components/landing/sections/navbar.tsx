@@ -12,13 +12,15 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/80 bg-background/95 text-foreground backdrop-blur-2xl transition-colors shadow-lg font-sans">
       {/* Top Luxury Announcement Ticker Bar */}
-      <div className="bg-primary text-primary-foreground text-[10px] font-medium tracking-[0.25em] uppercase py-2 px-4 text-center flex items-center justify-center gap-2">
-        <Sparkles className="size-3 fill-current opacity-80" />
-        <span>Forbes 5-Star Sanctuary 2026 • Complimentary Private Helipad Transfers Included</span>
-        <Sparkles className="size-3 fill-current opacity-80" />
+      <div className="bg-primary text-primary-foreground text-[9.5px] sm:text-[10px] font-bold tracking-[0.18em] sm:tracking-[0.25em] uppercase py-1.5 sm:py-2 px-3 text-center flex items-center justify-center gap-1.5 sm:gap-2 leading-none whitespace-nowrap overflow-hidden">
+        <Sparkles className="size-3 fill-current opacity-80 shrink-0" />
+        <span className="truncate">
+          Forbes 5-Star Sanctuary 2026<span className="hidden sm:inline"> • Complimentary Private Helipad Transfers Included</span>
+        </span>
+        <Sparkles className="size-3 fill-current opacity-80 shrink-0 hidden sm:inline" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-6">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-3 xl:gap-6">
 
         {/* Dedicated Resort Luxury Logo */}
         <Link to="/" className="shrink-0">
@@ -26,43 +28,43 @@ export function Navbar() {
         </Link>
 
         {/* Clean Luxury Nav Links */}
-        <nav className="hidden lg:flex items-center gap-8 text-[11px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
-          <a href="#about" className="hover:text-primary transition-colors py-1">The Resort</a>
-          <a href="#suites" className="hover:text-primary transition-colors py-1">Suites & Villas</a>
-          <a href="#packages" className="hover:text-primary transition-colors py-1 flex items-center gap-1.5 text-primary font-bold">
+        <nav className="hidden lg:flex items-center gap-3 xl:gap-6 text-[10.5px] xl:text-[11px] font-bold text-muted-foreground uppercase tracking-[0.14em] xl:tracking-[0.18em] whitespace-nowrap">
+          <a href="#about" className="hover:text-primary transition-colors py-1 whitespace-nowrap">The Resort</a>
+          <a href="#suites" className="hover:text-primary transition-colors py-1 whitespace-nowrap">Suites & Villas</a>
+          <a href="#packages" className="hover:text-primary transition-colors py-1 flex items-center gap-1.5 text-primary font-bold whitespace-nowrap">
             <span>Offers</span>
-            <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+            <span className="size-1.5 rounded-full bg-primary animate-pulse shrink-0" />
           </a>
-          <a href="#experiences" className="hover:text-primary transition-colors py-1">Dining & Spa</a>
-          <a href="#reviews" className="hover:text-primary transition-colors py-1">Reviews</a>
-          <a href="#contact" className="hover:text-primary transition-colors py-1">Contact</a>
+          <a href="#experiences" className="hover:text-primary transition-colors py-1 whitespace-nowrap">Dining & Spa</a>
+          <a href="#reviews" className="hover:text-primary transition-colors py-1 whitespace-nowrap">Reviews</a>
+          <a href="#contact" className="hover:text-primary transition-colors py-1 whitespace-nowrap">Contact</a>
         </nav>
 
         {/* Guest Hotline, Account & Primary Reservation CTA */}
-        <div className="hidden sm:flex items-center gap-5 shrink-0">
+        <div className="hidden sm:flex items-center gap-3 xl:gap-5 shrink-0">
           {/* Phone Hotline Badge */}
           <a
             href="tel:18005557867"
-            className="hidden xl:inline-flex items-center gap-2 text-[11px] font-semibold tracking-wider text-muted-foreground hover:text-primary transition-colors whitespace-nowrap"
+            className="hidden 2xl:inline-flex items-center gap-2 text-[10.5px] xl:text-[11px] font-semibold tracking-wider text-muted-foreground hover:text-primary transition-colors whitespace-nowrap"
           >
             <Phone className="size-3.5 text-primary" />
             <span>+1 (800) 555-7867</span>
           </a>
 
-          <div className="h-4 w-px bg-border hidden xl:block" />
+          <div className="h-4 w-px bg-border hidden 2xl:block" />
 
-          <Link to="/auth/sign-in">
-            <span className="text-[11px] font-bold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+          <Link to="/auth/sign-in" className="whitespace-nowrap">
+            <span className="text-[10.5px] xl:text-[11px] font-bold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors cursor-pointer whitespace-nowrap">
               Guest Sign In
             </span>
           </Link>
 
-          <Link to="/guest/bookings">
+          <Link to="/guest/bookings" className="shrink-0">
             <Button
               size="sm"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-[11px] tracking-[0.2em] uppercase h-10 px-6 rounded-full shadow-md hover:shadow-lg hover:scale-105 transition-all cursor-pointer gap-2"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-[10px] xl:text-[11px] tracking-[0.15em] xl:tracking-[0.2em] uppercase h-9 xl:h-10 px-4 xl:px-6 rounded-full shadow-md hover:shadow-lg hover:scale-105 transition-all cursor-pointer gap-2 whitespace-nowrap shrink-0"
             >
-              <Calendar className="size-3.5" />
+              <Calendar className="size-3.5 shrink-0" />
               <span>Book A Stay</span>
             </Button>
           </Link>

@@ -24,8 +24,10 @@ import {
   Trash2,
 } from "lucide-react"
 import { DataTable, type ColumnDef } from "@/components/shared"
-import { useUser } from "@clerk/react"
 import { useAuth } from "@/contexts/auth-context"
+import { useCurrentUser } from "@/hooks/use-current-user"
+import { IS_DEMO_MODE } from "@/lib/demo-data"
+import { useUser } from "@clerk/react"
 import { toast } from "sonner"
 
 // Modular Dialog Components
@@ -56,9 +58,18 @@ const getRoleColor = (role: string) => {
 }
 
 
+// Safe wrapper — IS_DEMO_MODE is a build-time constant, so this never
+// violates React's Rules of Hooks (same branch taken on every render).
+function useClerkUserSafe() {
+  if (IS_DEMO_MODE) return { user: null, isLoaded: true }
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  return useUser()
+}
 
 export function UserManagementPage() {
-  const { user: currentUser, isLoaded: isUserLoaded } = useUser()
+  const currentUserFromAuth = useCurrentUser()
+  const { user: clerkUser, isLoaded: isUserLoaded } = useClerkUserSafe()
+  const currentUser = IS_DEMO_MODE ? currentUserFromAuth : clerkUser
   const { getToken } = useAuth()
 
   const [users, setUsers] = useState<User[]>([])
@@ -86,13 +97,16 @@ export function UserManagementPage() {
         if (token) {
           const data = await fetchUsers(token)
           if (Array.isArray(data)) {
-            const currentUserEmail = currentUser?.primaryEmailAddress?.emailAddress || currentUser?.emailAddresses?.[0]?.emailAddress || ""
+            // In demo mode, currentUser is from auth-context (has .email, not .primaryEmailAddress)
+            const currentUserEmail = IS_DEMO_MODE
+              ? (currentUser as any)?.email || ""
+              : (currentUser as any)?.primaryEmailAddress?.emailAddress || (currentUser as any)?.emailAddresses?.[0]?.emailAddress || ""
 
             const enrichedData = data.map(u => {
               let avatar = u.avatar
               if (!avatar || !(avatar.startsWith("http") || avatar.startsWith("data:"))) {
                 if (currentUserEmail && u.email.toLowerCase() === currentUserEmail.toLowerCase()) {
-                  avatar = currentUser?.imageUrl || ""
+                  avatar = (currentUser as any)?.imageUrl || ""
                 }
               }
               return { ...u, avatar }
@@ -107,22 +121,26 @@ export function UserManagementPage() {
         console.warn("Failed to fetch users from Django backend, falling back to local session merge:", err)
       }
       
-      // Fallback
+      // Fallback — build a minimal user list from whoever is logged in
       let mapped: User[] = []
       
       if (currentUser) {
-        const currentUserEmail = currentUser.primaryEmailAddress?.emailAddress || currentUser.emailAddresses?.[0]?.emailAddress || ""
+        const u = currentUser as any
+        // Auth-context user (demo) has .email; Clerk user has .primaryEmailAddress
+        const currentUserEmail = IS_DEMO_MODE
+          ? u.email || ""
+          : u.primaryEmailAddress?.emailAddress || u.emailAddresses?.[0]?.emailAddress || ""
         mapped = [
           {
-            id: currentUser.id || 1,
-            name: `${currentUser.firstName || ""} ${currentUser.lastName || ""}`.trim() || "Logged In User",
+            id: u.id || 1,
+            name: u.fullName || `${u.firstName || ""} ${u.lastName || ""}`.trim() || "Logged In User",
             email: currentUserEmail,
-            avatar: currentUser.imageUrl || "",
+            avatar: u.imageUrl || "",
             phone: "",
             role: "Admin",
             status: "Active",
-            joinedDate: currentUser.createdAt ? new Date(currentUser.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-            lastLogin: currentUser.updatedAt ? new Date(currentUser.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            joinedDate: u.createdAt ? new Date(u.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            lastLogin: u.updatedAt ? new Date(u.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           }
         ]
       }

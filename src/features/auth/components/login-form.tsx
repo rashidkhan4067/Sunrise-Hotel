@@ -15,7 +15,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { useNavigate, Link } from "react-router-dom"
-import { Loader2 } from "lucide-react"
+import { Loader2, ShieldCheck, Headphones, User2, ChevronRight } from "lucide-react"
 import React from "react"
 import { toast } from "sonner"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -23,8 +23,40 @@ import { useAuth } from "@/contexts/auth-context"
 import { loginFormSchema } from "../lib/schemas"
 import { GoogleButton } from "./google-button"
 import { OtpVerifyForm } from "./otp-verify-form"
+import { IS_DEMO_MODE, DEMO_USERS_AUTH } from "@/lib/demo-data"
 
 type LoginFormValues = z.infer<typeof loginFormSchema>
+
+const DEMO_ACCOUNTS = [
+  {
+    label: "Admin",
+    description: "Full access — rooms, bookings, users, reports",
+    email: DEMO_USERS_AUTH[0].email,
+    password: DEMO_USERS_AUTH[0].password,
+    icon: ShieldCheck,
+    color: "text-violet-500",
+    bg: "bg-violet-500/10 border-violet-500/20",
+  },
+  {
+    label: "Receptionist",
+    description: "Rooms, bookings, guests, calendar",
+    email: DEMO_USERS_AUTH[1].email,
+    password: DEMO_USERS_AUTH[1].password,
+    icon: Headphones,
+    color: "text-sky-500",
+    bg: "bg-sky-500/10 border-sky-500/20",
+  },
+  {
+    label: "Guest",
+    description: "My bookings & support",
+    email: DEMO_USERS_AUTH[2].email,
+    password: DEMO_USERS_AUTH[2].password,
+    icon: User2,
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/10 border-emerald-500/20",
+  },
+]
+
 
 export function LoginForm({
   className,
@@ -204,6 +236,46 @@ export function LoginForm({
         </p>
       </div>
 
+      {/* ── Demo Accounts Card ─────────────────────────────── */}
+      {IS_DEMO_MODE && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+          <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 text-center">
+            🎭 Demo Mode — Click any account to auto-fill
+          </p>
+          <div className="space-y-1.5">
+            {DEMO_ACCOUNTS.map((acc) => {
+              const Icon = acc.icon
+              return (
+                <button
+                  key={acc.email}
+                  type="button"
+                  onClick={() => {
+                    form.setValue("email", acc.email)
+                    form.setValue("password", acc.password)
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg border text-left transition-all hover:scale-[1.01] cursor-pointer",
+                    acc.bg
+                  )}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className={cn("size-7 rounded-full flex items-center justify-center bg-background/60", acc.color)}>
+                      <Icon className="size-3.5" />
+                    </div>
+                    <div>
+                      <p className={cn("text-xs font-bold", acc.color)}>{acc.label}</p>
+                      <p className="text-[10px] text-muted-foreground">{acc.description}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="size-3.5 text-muted-foreground shrink-0" />
+                </button>
+              )
+            })}
+          </div>
+          <p className="text-[10px] text-muted-foreground text-center">Password for all accounts: <span className="font-bold font-mono">demo1234</span></p>
+        </div>
+      )}
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6">
           <div className="grid gap-4">
@@ -266,8 +338,8 @@ export function LoginForm({
               )}
             />
 
-            {/* This div is required for Clerk Bot Protection (CAPTCHA) */}
-            <div id="clerk-captcha" className="flex justify-center" />
+            {/* Clerk CAPTCHA — only needed in real mode */}
+            {!IS_DEMO_MODE && <div id="clerk-captcha" className="flex justify-center" />}
 
             <Button
               type="submit"
@@ -278,21 +350,26 @@ export function LoginForm({
               Sign In to Sanctuary
             </Button>
 
-            <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t my-2">
-              <span className="bg-background text-muted-foreground relative z-10 px-2 text-xs font-semibold">
-                Or continue with
-              </span>
+            {!IS_DEMO_MODE && (
+              <>
+                <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t my-2">
+                  <span className="bg-background text-muted-foreground relative z-10 px-2 text-xs font-semibold">
+                    Or continue with
+                  </span>
+                </div>
+                <GoogleButton mode="login" />
+              </>
+            )}
+          </div>
+
+          {!IS_DEMO_MODE && (
+            <div className="text-center text-xs text-muted-foreground font-medium">
+              Don&apos;t have an account yet?{" "}
+              <Link to="/auth/sign-up" className="text-primary hover:opacity-90 font-bold underline underline-offset-4">
+                Create Resort Account
+              </Link>
             </div>
-
-            <GoogleButton mode="login" />
-          </div>
-
-          <div className="text-center text-xs text-muted-foreground font-medium">
-            Don&apos;t have an account yet?{" "}
-            <Link to="/auth/sign-up" className="text-primary hover:opacity-90 font-bold underline underline-offset-4">
-              Create Resort Account
-            </Link>
-          </div>
+          )}
         </form>
       </Form>
     </div>

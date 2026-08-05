@@ -1,6 +1,10 @@
 "use client"
 
 import React, { createContext, useContext, useEffect, useState } from "react"
+import { IS_DEMO_MODE, DEMO_USERS_AUTH, demoDelay } from "@/lib/demo-data"
+
+// ─── Conditionally import Clerk hooks ────────────────────────────────────────
+// We still need to import them but they won't be called in demo mode
 import { useAuth as useClerkAuth, useUser as useClerkUser, useClerk } from "@clerk/react"
 import { apiClient } from "@/lib/api-client"
 
@@ -58,7 +62,94 @@ const resolveUserRole = (userObj: any): string => {
   return "org:member"
 }
 
+// ─── Demo Auth Provider ────────────────────────────────────────────────────────
+// Used when VITE_DEMO_MODE=true. Zero Clerk calls.
+
+function DemoAuthProvider({ children }: { children: React.ReactNode }) {
+  const [demoUser, setDemoUser] = useState<any>(() => {
+    try {
+      const stored = localStorage.getItem("demo_session")
+      return stored ? JSON.parse(stored) : null
+    } catch {
+      return null
+    }
+  })
+
+  const isAuthenticated = !!demoUser
+  const role = demoUser?.role || "org:member"
+
+  const login = async (email: string, password: string) => {
+    await demoDelay(null, 600)
+    const found = DEMO_USERS_AUTH.find(
+      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+    )
+    if (!found) throw new Error("Invalid demo credentials. Use one of the demo accounts shown above.")
+    const userData = {
+      id: found.id,
+      fullName: found.fullName,
+      firstName: found.firstName,
+      lastName: found.lastName,
+      imageUrl: found.imageUrl,
+      email: found.email,
+      role: found.role,
+      primaryEmailAddress: { emailAddress: found.email },
+      emailAddresses: [{ emailAddress: found.email }],
+    }
+    localStorage.setItem("demo_session", JSON.stringify(userData))
+    setDemoUser(userData)
+    return true as const
+  }
+
+  const logout = async () => {
+    localStorage.removeItem("demo_session")
+    setDemoUser(null)
+  }
+
+  const getToken = async () => "demo-token-sunrise"
+  const register = async () => { throw new Error("Registration is disabled in demo mode.") }
+  const verifyOtp = async () => { throw new Error("OTP is disabled in demo mode.") }
+  const verifyOtpLogin = async () => { throw new Error("OTP is disabled in demo mode.") }
+  const verifySecondFactor = async () => { throw new Error("MFA is disabled in demo mode.") }
+  const loginWithGoogle = async () => { throw new Error("Google login is disabled in demo mode.") }
+  const registerWithGoogle = async () => { throw new Error("Google login is disabled in demo mode.") }
+  const updateProfile = async () => {}
+
+  return (
+    <AuthContext.Provider
+      value={{
+        isAuthenticated,
+        isLoading: false,
+        user: demoUser,
+        role,
+        signIn: null,
+        signUp: null,
+        login,
+        register,
+        verifyOtp,
+        verifyOtpLogin,
+        verifySecondFactor,
+        loginWithGoogle,
+        registerWithGoogle,
+        logout,
+        getToken,
+        updateProfile,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+// ─── Real Clerk Auth Provider ──────────────────────────────────────────────────
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  if (IS_DEMO_MODE) {
+    return <DemoAuthProvider>{children}</DemoAuthProvider>
+  }
+  return <ClerkAuthProvider>{children}</ClerkAuthProvider>
+}
+
+function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
   const clerkAuth = useClerkAuth()
   const clerkUser = useClerkUser()
   const clerk = useClerk()

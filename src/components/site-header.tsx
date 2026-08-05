@@ -200,7 +200,7 @@ export function SiteHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 flex h-(--header-height) shrink-0 items-center border-b border-border bg-background/80 backdrop-blur-md backdrop-saturate-150 shadow-xs transition-all ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
+      <header className="sticky top-[var(--banner-height,0px)] z-40 flex h-(--header-height) shrink-0 items-center border-b border-border bg-background/80 backdrop-blur-md backdrop-saturate-150 shadow-xs transition-all ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
         <div className="flex w-full items-center gap-2 px-4 lg:px-6">
 
           {/* LEFT: Sidebar trigger + brand crumb */}

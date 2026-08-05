@@ -25,7 +25,7 @@ import { useAppStore } from "@/store/use-app-store"
 import { useCurrentUser } from "@/hooks/use-current-user"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
-import { useUser } from "@clerk/react"
+import { IS_DEMO_MODE } from "@/lib/demo-data"
 
 const userFormSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -42,7 +42,8 @@ export default function UserSettingsPage() {
   const { name, email, avatar } = useCurrentUser()
   const updateUser = useAppStore((state) => state.updateUser)
   const { updateProfile } = useAuth()
-  const { user } = useUser()
+  // In demo mode, user data comes from auth-context via useCurrentUser
+  const clerkUser = IS_DEMO_MODE ? null : null // placeholder — not needed in demo mode
   
   const [firstName, lastName] = name.split(" ")
   

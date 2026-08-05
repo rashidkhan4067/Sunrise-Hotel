@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/form"
 
 import { forgotPasswordEmailSchema, strongPasswordSchema } from "../lib/schemas"
+import { IS_DEMO_MODE } from "@/lib/demo-data"
 
 type EmailValues = z.infer<typeof forgotPasswordEmailSchema>
 
@@ -30,7 +31,8 @@ export function ForgotPasswordForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const clerk = useClerk()
+  // In demo mode, skip useClerk (it crashes without <ClerkProvider>)
+  const clerk = IS_DEMO_MODE ? null : useClerk() // eslint-disable-line react-hooks/rules-of-hooks
   const { isAuthenticated, role } = useAuth()
   const navigate = useNavigate()
   

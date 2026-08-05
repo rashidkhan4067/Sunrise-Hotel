@@ -20,6 +20,7 @@ import { useUser } from "@clerk/react"
 import { toast } from "sonner"
 import { useState } from "react"
 import { Loader2, ShieldCheck, Eye, EyeOff } from "lucide-react"
+import { IS_DEMO_MODE } from "@/lib/demo-data"
 
 const passwordFormSchema = z
   .object({
@@ -41,7 +42,9 @@ const passwordFormSchema = z
 type PasswordFormValues = z.infer<typeof passwordFormSchema>
 
 export default function PasswordSettingsPage() {
-  const { user } = useUser()
+  // In demo mode, skip Clerk's useUser entirely
+  const clerkData = IS_DEMO_MODE ? { user: null } : useUser() // eslint-disable-line react-hooks/rules-of-hooks
+  const user = clerkData.user
   const [saving, setSaving] = useState(false)
   const [showCurrent, setShowCurrent] = useState(false)
   const [showNew, setShowNew] = useState(false)
@@ -72,6 +75,15 @@ export default function PasswordSettingsPage() {
   async function onSubmit(values: PasswordFormValues) {
     setSaving(true)
     try {
+      if (IS_DEMO_MODE) {
+        await new Promise(r => setTimeout(r, 600))
+        toast.success("Password updated! (Demo)", {
+          description: "In demo mode, passwords are not actually changed.",
+        })
+        form.reset()
+        return
+      }
+
       if (!user) {
         throw new Error("User session not loaded. Please try again.")
       }
