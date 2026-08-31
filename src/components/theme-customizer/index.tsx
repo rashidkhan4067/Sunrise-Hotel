@@ -59,33 +59,41 @@ export function ThemeCustomizer({ open, onOpenChange }: ThemeCustomizerProps) {
   const [config, setConfig] = React.useState<CustomizerConfig>(() => loadCustomizerConfig())
   const { selectedTheme, selectedTweakcnTheme, selectedRadius, importedTheme } = config
 
-  // Wrapped setters that queue functional state updates to eliminate the batching overwrite bug
+  // Wrapped setters that queue functional state updates with startTransition to eliminate UI blocking
   const setSelectedTheme = (v: string) => {
-    setConfig(prev => {
-      const next = { ...prev, selectedTheme: v }
-      saveCustomizerConfig(next)
-      return next
+    React.startTransition(() => {
+      setConfig(prev => {
+        const next = { ...prev, selectedTheme: v }
+        setTimeout(() => saveCustomizerConfig(next), 0)
+        return next
+      })
     })
   }
   const setSelectedTweakcnTheme = (v: string) => {
-    setConfig(prev => {
-      const next = { ...prev, selectedTweakcnTheme: v }
-      saveCustomizerConfig(next)
-      return next
+    React.startTransition(() => {
+      setConfig(prev => {
+        const next = { ...prev, selectedTweakcnTheme: v }
+        setTimeout(() => saveCustomizerConfig(next), 0)
+        return next
+      })
     })
   }
   const setSelectedRadius = (v: string) => {
-    setConfig(prev => {
-      const next = { ...prev, selectedRadius: v }
-      saveCustomizerConfig(next)
-      return next
+    React.startTransition(() => {
+      setConfig(prev => {
+        const next = { ...prev, selectedRadius: v }
+        setTimeout(() => saveCustomizerConfig(next), 0)
+        return next
+      })
     })
   }
   const setImportedTheme = (v: ImportedTheme | null) => {
-    setConfig(prev => {
-      const next = { ...prev, importedTheme: v }
-      saveCustomizerConfig(next)
-      return next
+    React.startTransition(() => {
+      setConfig(prev => {
+        const next = { ...prev, importedTheme: v }
+        setTimeout(() => saveCustomizerConfig(next), 0)
+        return next
+      })
     })
   }
 

@@ -102,9 +102,6 @@ export function ThemeTab({
           setSelectedTweakcnTheme("") // Clear tweakcn selection
           setBrandColorsValues({}) // Clear brand colors state
           setImportedTheme(null) // Clear imported theme
-          React.startTransition(() => {
-            applyTheme(value, isDarkMode)
-          })
         }}>
           <SelectTrigger className="w-full cursor-pointer">
             <SelectValue placeholder="Choose Shadcn Theme" />
@@ -158,12 +155,6 @@ export function ThemeTab({
           setSelectedTheme("") // Clear shadcn selection
           setBrandColorsValues({}) // Clear brand colors state
           setImportedTheme(null) // Clear imported theme
-          const selectedPreset = tweakcnThemes.find(t => t.value === value)?.preset
-          if (selectedPreset) {
-            React.startTransition(() => {
-              applyTweakcnTheme(selectedPreset, isDarkMode)
-            })
-          }
         }}>
           <SelectTrigger className="w-full cursor-pointer">
             <SelectValue placeholder="Choose Tweakcn Theme" />

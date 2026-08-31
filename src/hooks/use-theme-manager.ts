@@ -18,52 +18,9 @@ export function useThemeManager() {
   }, [theme])
 
   const resetTheme = React.useCallback(() => {
-    // Comprehensive reset of ALL possible CSS variables that could be set by themes
+    // Instant cleanup of inline style overrides without DOM thrashing
     const root = document.documentElement
-    const allPossibleVars = [
-      // Standard shadcn/ui variables
-      'background', 'foreground', 'card', 'card-foreground', 'popover', 'popover-foreground',
-      'primary', 'primary-foreground', 'secondary', 'secondary-foreground', 'muted', 'muted-foreground',
-      'accent', 'accent-foreground', 'destructive', 'destructive-foreground', 'border', 'input',
-      'ring', 'radius',
-      
-      // Chart variables
-      'chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5',
-      
-      // Sidebar variables
-      'sidebar', 'sidebar-background', 'sidebar-foreground', 'sidebar-primary', 'sidebar-primary-foreground', 
-      'sidebar-accent', 'sidebar-accent-foreground', 'sidebar-border', 'sidebar-ring',
-      
-      // Font variables that might be in imported themes
-      'font-sans', 'font-serif', 'font-mono',
-      
-      // Shadow variables from imported themes
-      'shadow-2xs', 'shadow-xs', 'shadow-sm', 'shadow', 'shadow-md', 'shadow-lg', 'shadow-xl', 'shadow-2xl',
-      
-      // Spacing variables
-      'spacing', 'tracking-normal',
-      
-      // Additional variables that might be set by advanced themes
-      'card-header', 'card-content', 'card-footer', 'muted-background', 'accent-background',
-      'destructive-background', 'warning', 'warning-foreground', 'success', 'success-foreground',
-      'info', 'info-foreground'
-    ]
-    
-    // Remove all possible CSS variables
-    allPossibleVars.forEach(varName => {
-      root.style.removeProperty(`--${varName}`)
-    })
-    
-    // Also remove any other custom inline styles that might have been set (comprehensive cleanup)
-    const styleAttr = root.getAttribute('style')
-    if (styleAttr) {
-      const customProps = styleAttr.match(/--[a-zA-Z0-9_-]+/g)
-      if (customProps) {
-        customProps.forEach(prop => {
-          root.style.removeProperty(prop)
-        })
-      }
-    }
+    root.removeAttribute('style')
   }, [])
 
   const updateBrandColorsFromTheme = React.useCallback((styles: Record<string, string>) => {
@@ -81,32 +38,30 @@ export function useThemeManager() {
     const theme = colorThemes.find(t => t.value === themeValue)
     if (!theme) return
 
-    // Reset and apply theme variables
-    resetTheme()
     const styles = darkMode ? theme.preset.styles.dark : theme.preset.styles.light
     const root = document.documentElement
 
-    Object.entries(styles).forEach(([key, value]) => {
-      root.style.setProperty(`--${key}`, value)
+    // Non-blocking frame batching to eliminate INP latency
+    requestAnimationFrame(() => {
+      Object.entries(styles).forEach(([key, value]) => {
+        root.style.setProperty(`--${key}`, value)
+      })
+      updateBrandColorsFromTheme(styles)
     })
-
-    // Update brand colors values when theme changes
-    updateBrandColorsFromTheme(styles)
-  }, [resetTheme, updateBrandColorsFromTheme])
+  }, [updateBrandColorsFromTheme])
 
   const applyTweakcnTheme = React.useCallback((themePreset: ThemePreset, darkMode: boolean) => {
-    // Reset and apply theme variables
-    resetTheme()
     const styles = darkMode ? themePreset.styles.dark : themePreset.styles.light
     const root = document.documentElement
 
-    Object.entries(styles).forEach(([key, value]) => {
-      root.style.setProperty(`--${key}`, value)
+    // Non-blocking frame batching to eliminate INP latency
+    requestAnimationFrame(() => {
+      Object.entries(styles).forEach(([key, value]) => {
+        root.style.setProperty(`--${key}`, value)
+      })
+      updateBrandColorsFromTheme(styles)
     })
-
-    // Update brand colors values when theme changes
-    updateBrandColorsFromTheme(styles)
-  }, [resetTheme, updateBrandColorsFromTheme])
+  }, [updateBrandColorsFromTheme])
 
   const applyImportedTheme = React.useCallback((themeData: ImportedTheme, darkMode: boolean) => {
     const root = document.documentElement
