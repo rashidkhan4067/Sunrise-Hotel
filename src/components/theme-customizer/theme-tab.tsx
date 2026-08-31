@@ -106,34 +106,32 @@ export function ThemeTab({
           <SelectTrigger className="w-full cursor-pointer">
             <SelectValue placeholder="Choose Shadcn Theme" />
           </SelectTrigger>
-          <SelectContent className="max-h-60">
-            <div className="p-2">
-              {colorThemes.map((theme) => (
-                <SelectItem key={theme.value} value={theme.value} className="cursor-pointer">
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-1">
-                      <div
-                        className="w-3 h-3 rounded-full border border-border/20"
-                        style={{ backgroundColor: theme.preset.styles.light.primary }}
-                      />
-                      <div
-                        className="w-3 h-3 rounded-full border border-border/20"
-                        style={{ backgroundColor: theme.preset.styles.light.secondary }}
-                      />
-                      <div
-                        className="w-3 h-3 rounded-full border border-border/20"
-                        style={{ backgroundColor: theme.preset.styles.light.accent }}
-                      />
-                      <div
-                        className="w-3 h-3 rounded-full border border-border/20"
-                        style={{ backgroundColor: theme.preset.styles.light.muted }}
-                      />
-                    </div>
-                    <span>{theme.name}</span>
+          <SelectContent className="max-h-64">
+            {colorThemes.map((theme) => (
+              <SelectItem key={theme.value} value={theme.value} className="cursor-pointer py-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1 shrink-0">
+                    <span
+                      className="size-3 rounded-full border border-border/20"
+                      style={{ backgroundColor: theme.preset.styles.light.primary }}
+                    />
+                    <span
+                      className="size-3 rounded-full border border-border/20"
+                      style={{ backgroundColor: theme.preset.styles.light.secondary }}
+                    />
+                    <span
+                      className="size-3 rounded-full border border-border/20"
+                      style={{ backgroundColor: theme.preset.styles.light.accent }}
+                    />
+                    <span
+                      className="size-3 rounded-full border border-border/20"
+                      style={{ backgroundColor: theme.preset.styles.light.muted }}
+                    />
                   </div>
-                </SelectItem>
-              ))}
-            </div>
+                  <span className="truncate">{theme.name}</span>
+                </div>
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -159,34 +157,32 @@ export function ThemeTab({
           <SelectTrigger className="w-full cursor-pointer">
             <SelectValue placeholder="Choose Tweakcn Theme" />
           </SelectTrigger>
-          <SelectContent className="max-h-60">
-            <div className="p-2">
-              {tweakcnThemes.map((theme) => (
-                <SelectItem key={theme.value} value={theme.value} className="cursor-pointer">
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-1">
-                      <div
-                        className="w-3 h-3 rounded-full border border-border/20"
-                        style={{ backgroundColor: theme.preset.styles.light.primary }}
-                      />
-                      <div
-                        className="w-3 h-3 rounded-full border border-border/20"
-                        style={{ backgroundColor: theme.preset.styles.light.secondary }}
-                      />
-                      <div
-                        className="w-3 h-3 rounded-full border border-border/20"
-                        style={{ backgroundColor: theme.preset.styles.light.accent }}
-                      />
-                      <div
-                        className="w-3 h-3 rounded-full border border-border/20"
-                        style={{ backgroundColor: theme.preset.styles.light.muted }}
-                      />
-                    </div>
-                    <span>{theme.name}</span>
+          <SelectContent className="max-h-64">
+            {tweakcnThemes.map((theme) => (
+              <SelectItem key={theme.value} value={theme.value} className="cursor-pointer py-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1 shrink-0">
+                    <span
+                      className="size-3 rounded-full border border-border/20"
+                      style={{ backgroundColor: theme.preset.styles.light.primary }}
+                    />
+                    <span
+                      className="size-3 rounded-full border border-border/20"
+                      style={{ backgroundColor: theme.preset.styles.light.secondary }}
+                    />
+                    <span
+                      className="size-3 rounded-full border border-border/20"
+                      style={{ backgroundColor: theme.preset.styles.light.accent }}
+                    />
+                    <span
+                      className="size-3 rounded-full border border-border/20"
+                      style={{ backgroundColor: theme.preset.styles.light.muted }}
+                    />
                   </div>
-                </SelectItem>
-              ))}
-            </div>
+                  <span className="truncate">{theme.name}</span>
+                </div>
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
