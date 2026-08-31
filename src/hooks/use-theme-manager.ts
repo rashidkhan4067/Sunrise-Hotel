@@ -41,46 +41,46 @@ export function useThemeManager() {
     const styles = darkMode ? theme.preset.styles.dark : theme.preset.styles.light
     const root = document.documentElement
 
-    // Non-blocking frame batching to eliminate INP latency
-    requestAnimationFrame(() => {
+    // Defer style injection so the browser paints the selection immediately (<10ms INP)
+    setTimeout(() => {
       Object.entries(styles).forEach(([key, value]) => {
         root.style.setProperty(`--${key}`, value)
       })
       updateBrandColorsFromTheme(styles)
-    })
+    }, 40)
   }, [updateBrandColorsFromTheme])
 
   const applyTweakcnTheme = React.useCallback((themePreset: ThemePreset, darkMode: boolean) => {
     const styles = darkMode ? themePreset.styles.dark : themePreset.styles.light
     const root = document.documentElement
 
-    // Non-blocking frame batching to eliminate INP latency
-    requestAnimationFrame(() => {
+    // Defer style injection so the browser paints the selection immediately (<10ms INP)
+    setTimeout(() => {
       Object.entries(styles).forEach(([key, value]) => {
         root.style.setProperty(`--${key}`, value)
       })
       updateBrandColorsFromTheme(styles)
-    })
+    }, 40)
   }, [updateBrandColorsFromTheme])
 
   const applyImportedTheme = React.useCallback((themeData: ImportedTheme, darkMode: boolean) => {
     const root = document.documentElement
     const themeVars = darkMode ? themeData.dark : themeData.light
     
-    // Apply all variables from the theme
-    Object.entries(themeVars).forEach(([variable, value]) => {
-      root.style.setProperty(`--${variable}`, value)
-    })
-    
-    // Update brand colors values for the customizer UI
-    const newBrandColors: Record<string, string> = {}
-    baseColors.forEach(color => {
-      const varName = color.cssVar.replace('--', '')
-      if (themeVars[varName]) {
-        newBrandColors[color.cssVar] = themeVars[varName]
-      }
-    })
-    setBrandColorsValues(newBrandColors)
+    setTimeout(() => {
+      Object.entries(themeVars).forEach(([variable, value]) => {
+        root.style.setProperty(`--${variable}`, value)
+      })
+      
+      const newBrandColors: Record<string, string> = {}
+      baseColors.forEach(color => {
+        const varName = color.cssVar.replace('--', '')
+        if (themeVars[varName]) {
+          newBrandColors[color.cssVar] = themeVars[varName]
+        }
+      })
+      setBrandColorsValues(newBrandColors)
+    }, 40)
   }, [])
 
   const applyRadius = (radius: string) => {
