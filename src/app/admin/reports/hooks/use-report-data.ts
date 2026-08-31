@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { apiClient } from "@/lib/api-client"
-import { toast } from "sonner"
 import { IS_DEMO_MODE, DEMO_REPORT_SUMMARY, DEMO_REPORT_ROWS, demoDelay } from "@/lib/demo-data"
 import type { ReportFilters, ReportRow, ReportSummary } from "../types"
 

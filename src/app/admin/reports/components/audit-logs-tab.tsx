@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { ShieldAlert, RefreshCw, Search, Clock, User, FileText, Monitor } from "lucide-react"
-import { toast } from "sonner"
 import { IS_DEMO_MODE, DEMO_AUDIT_LOGS, demoDelay } from "@/lib/demo-data"
 
 export interface AuditLogItem {
