@@ -1,7 +1,7 @@
 import React from "react"
 import { Link } from "react-router-dom"
 import { LandingLogo } from "@/components/landing-logo"
-import { Star, Award, ShieldCheck, ArrowLeft, Waves } from "lucide-react"
+import { Star, Award, ShieldCheck, ArrowLeft } from "lucide-react"
 
 interface AuthLayoutProps {
   children: React.ReactNode

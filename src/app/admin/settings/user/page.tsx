@@ -25,7 +25,6 @@ import { useAppStore } from "@/store/use-app-store"
 import { useCurrentUser } from "@/hooks/use-current-user"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
-import { IS_DEMO_MODE } from "@/lib/demo-data"
 
 const userFormSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -39,18 +38,14 @@ type UserFormValues = z.infer<typeof userFormSchema>
 
 export default function UserSettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { name, email, avatar } = useCurrentUser()
+  const { name, email, avatar, user } = useCurrentUser()
   const updateUser = useAppStore((state) => state.updateUser)
-  const { updateProfile } = useAuth()
-  // In demo mode, user data comes from auth-context via useCurrentUser
-  const clerkUser = IS_DEMO_MODE ? null : null // placeholder — not needed in demo mode
+  const { updateProfile, role } = useAuth()
   
   const [firstName, lastName] = name.split(" ")
   
   const [profileImage, setProfileImage] = useState<string | null>(avatar || null)
   const [useDefaultIcon, setUseDefaultIcon] = useState(!avatar)
-
-  const { role } = useAuth()
   
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
@@ -71,7 +66,7 @@ export default function UserSettingsPage() {
         firstName: first || "",
         lastName: last || "",
         email: email || "",
-        phone: user?.primaryPhoneNumber?.phoneNumber || "",
+        phone: user?.primaryPhoneNumber?.phoneNumber || user?.phone || "",
         role: role || "",
       })
       if (avatar) {
@@ -105,7 +100,7 @@ export default function UserSettingsPage() {
       firstName: first || "",
       lastName: last || "",
       email: email || "",
-      phone: user?.primaryPhoneNumber?.phoneNumber || "",
+      phone: user?.primaryPhoneNumber?.phoneNumber || user?.phone || "",
       role: role || "",
     })
     toast.info("Changes discarded")
@@ -126,7 +121,7 @@ export default function UserSettingsPage() {
       reader.readAsDataURL(file)
 
       try {
-        if (user) {
+        if (user && typeof user.setProfileImage === "function") {
           const loadingToast = toast.loading("Uploading new profile photo...")
           await user.setProfileImage({ file })
           toast.dismiss(loadingToast)
@@ -142,7 +137,7 @@ export default function UserSettingsPage() {
 
   const handleReset = async () => {
     try {
-      if (user) {
+      if (user && typeof user.setProfileImage === "function") {
         const loadingToast = toast.loading("Resetting profile photo...")
         await user.setProfileImage({ file: null })
         toast.dismiss(loadingToast)

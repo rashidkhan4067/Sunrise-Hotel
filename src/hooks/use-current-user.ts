@@ -31,5 +31,7 @@ export function useCurrentUser() {
       "",
     avatar: resolvedUser?.imageUrl || "",
     role,
+    user: resolvedUser,
   }
 }
+

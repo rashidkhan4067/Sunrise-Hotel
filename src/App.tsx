@@ -11,7 +11,6 @@ import { Toaster } from '@/components/ui/sonner'
 import { ThemeCustomizer, ThemeCustomizerTrigger } from '@/components/theme-customizer/main'
 import { ClerkProvider } from '@clerk/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { DemoBanner } from '@/components/demo-banner'
 import { IS_DEMO_MODE } from '@/lib/demo-data'
 
 const queryClient = new QueryClient()

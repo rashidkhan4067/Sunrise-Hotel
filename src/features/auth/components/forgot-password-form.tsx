@@ -80,6 +80,16 @@ export function ForgotPasswordForm({
   const onEmailSubmit = async (values: EmailValues) => {
     setSubmitting(true)
     try {
+      if (IS_DEMO_MODE || !clerk) {
+        await new Promise((r) => setTimeout(r, 600))
+        setUserEmail(values.email)
+        setStep(2)
+        toast.success("Verification code sent! (Demo Mode)", {
+          description: `We sent a 6-digit code to ${values.email}.`,
+        })
+        return
+      }
+
       // Start password reset flow in Clerk
       const signInAttempt = await clerk.client.signIn.create({
         identifier: values.email,
@@ -110,8 +120,8 @@ export function ForgotPasswordForm({
 
       // Advanced Session Recovery (already signed in)
       if (clerkError?.code === "session_exists" || err.message?.includes("already signed in")) {
-        const sid = clerkError?.meta?.sessionId || clerk.client?.sessions?.[0]?.id
-        if (sid) {
+        const sid = clerkError?.meta?.sessionId || clerk?.client?.sessions?.[0]?.id
+        if (sid && clerk) {
           await clerk.setActive({ session: sid })
           toast.success("You are already signed in.", {
             description: "Redirecting you to the dashboard.",
@@ -154,7 +164,16 @@ export function ForgotPasswordForm({
 
     setSubmitting(true)
     try {
-      const signInAttempt = activeSignInAttempt || clerk.client.signIn
+      if (IS_DEMO_MODE || !clerk) {
+        await new Promise((r) => setTimeout(r, 600))
+        toast.success("Password reset successfully! (Demo Mode)", {
+          description: "Welcome to your Dashboard.",
+        })
+        setTimeout(() => navigate("/auth/sign-in"), 500)
+        return
+      }
+
+      const signInAttempt = activeSignInAttempt || clerk.client?.signIn
       if (!signInAttempt) {
         throw new Error("No active password reset attempt found. Please request a code first.")
       }
@@ -179,8 +198,8 @@ export function ForgotPasswordForm({
       const clerkError = err.errors?.[0]
 
       if (clerkError?.code === "session_exists" || err.message?.includes("already signed in")) {
-        const sid = clerkError?.meta?.sessionId || clerk.client?.sessions?.[0]?.id
-        if (sid) {
+        const sid = clerkError?.meta?.sessionId || clerk?.client?.sessions?.[0]?.id
+        if (sid && clerk) {
           await clerk.setActive({ session: sid })
           toast.success("You are already signed in.", {
             description: "Redirecting you to the dashboard.",
