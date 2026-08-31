@@ -2,7 +2,7 @@ import type { ThemePreset } from "../types/theme";
 
 export const tweakcnPresets: Record<string, ThemePreset> = {
   "sunrise-resort-gold": {
-    label: "👑 Sunrise Imperial Resort — Navy & Royal Gold",
+    label: "👑 Sunrise Imperial (Navy & Gold)",
     styles: {
       light: {
         background: "oklch(0.985 0.005 85)",
@@ -85,7 +85,7 @@ export const tweakcnPresets: Record<string, ThemePreset> = {
 
   // ── Noir Gold: Jet black sidebar + pure amber gold — matches landing page exactly ──
   "sunrise-noir-gold": {
-    label: "✦ Sunrise Noir Gold — Black & Monarch Gold",
+    label: "✦ Sunrise Noir (Black & Gold)",
     styles: {
       light: {
         background: "oklch(0.97 0.002 80)",

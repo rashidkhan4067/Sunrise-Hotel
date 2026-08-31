@@ -103,28 +103,28 @@ export function ThemeTab({
           setBrandColorsValues({}) // Clear brand colors state
           setImportedTheme(null) // Clear imported theme
         }}>
-          <SelectTrigger className="w-full cursor-pointer">
+          <SelectTrigger className="w-full cursor-pointer h-10 text-xs">
             <SelectValue placeholder="Choose Shadcn Theme" />
           </SelectTrigger>
           <SelectContent className="max-h-64">
             {colorThemes.map((theme) => (
-              <SelectItem key={theme.value} value={theme.value} className="cursor-pointer py-2">
-                <div className="flex items-center gap-2">
+              <SelectItem key={theme.value} value={theme.value} className="cursor-pointer py-2 text-xs">
+                <div className="flex items-center gap-2 min-w-0">
                   <div className="flex gap-1 shrink-0">
                     <span
-                      className="size-3 rounded-full border border-border/20"
+                      className="size-2.5 rounded-full border border-border/20 shrink-0"
                       style={{ backgroundColor: theme.preset.styles.light.primary }}
                     />
                     <span
-                      className="size-3 rounded-full border border-border/20"
+                      className="size-2.5 rounded-full border border-border/20 shrink-0"
                       style={{ backgroundColor: theme.preset.styles.light.secondary }}
                     />
                     <span
-                      className="size-3 rounded-full border border-border/20"
+                      className="size-2.5 rounded-full border border-border/20 shrink-0"
                       style={{ backgroundColor: theme.preset.styles.light.accent }}
                     />
                     <span
-                      className="size-3 rounded-full border border-border/20"
+                      className="size-2.5 rounded-full border border-border/20 shrink-0"
                       style={{ backgroundColor: theme.preset.styles.light.muted }}
                     />
                   </div>
@@ -154,28 +154,28 @@ export function ThemeTab({
           setBrandColorsValues({}) // Clear brand colors state
           setImportedTheme(null) // Clear imported theme
         }}>
-          <SelectTrigger className="w-full cursor-pointer">
+          <SelectTrigger className="w-full cursor-pointer h-10 text-xs">
             <SelectValue placeholder="Choose Tweakcn Theme" />
           </SelectTrigger>
           <SelectContent className="max-h-64">
             {tweakcnThemes.map((theme) => (
-              <SelectItem key={theme.value} value={theme.value} className="cursor-pointer py-2">
-                <div className="flex items-center gap-2">
+              <SelectItem key={theme.value} value={theme.value} className="cursor-pointer py-2 text-xs">
+                <div className="flex items-center gap-2 min-w-0">
                   <div className="flex gap-1 shrink-0">
                     <span
-                      className="size-3 rounded-full border border-border/20"
+                      className="size-2.5 rounded-full border border-border/20 shrink-0"
                       style={{ backgroundColor: theme.preset.styles.light.primary }}
                     />
                     <span
-                      className="size-3 rounded-full border border-border/20"
+                      className="size-2.5 rounded-full border border-border/20 shrink-0"
                       style={{ backgroundColor: theme.preset.styles.light.secondary }}
                     />
                     <span
-                      className="size-3 rounded-full border border-border/20"
+                      className="size-2.5 rounded-full border border-border/20 shrink-0"
                       style={{ backgroundColor: theme.preset.styles.light.accent }}
                     />
                     <span
-                      className="size-3 rounded-full border border-border/20"
+                      className="size-2.5 rounded-full border border-border/20 shrink-0"
                       style={{ backgroundColor: theme.preset.styles.light.muted }}
                     />
                   </div>
