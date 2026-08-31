@@ -44,8 +44,10 @@ function AppContent({ themeCustomizerOpen, setThemeCustomizerOpen }: {
     </QueryClientProvider>
   )
 
-  // In demo mode, skip wrapping with ClerkProvider entirely
-  if (IS_DEMO_MODE) return content
+  // In demo mode or if Clerk key is not provided, skip wrapping with ClerkProvider entirely
+  if (IS_DEMO_MODE || !CLERK_PUBLISHABLE_KEY || !CLERK_PUBLISHABLE_KEY.startsWith("pk_")) {
+    return content
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

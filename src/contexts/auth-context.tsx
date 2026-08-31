@@ -143,7 +143,10 @@ function DemoAuthProvider({ children }: { children: React.ReactNode }) {
 // ─── Real Clerk Auth Provider ──────────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  if (IS_DEMO_MODE) {
+  const clerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || ""
+  const isDemo = IS_DEMO_MODE || !clerkKey || !clerkKey.startsWith("pk_")
+
+  if (isDemo) {
     return <DemoAuthProvider>{children}</DemoAuthProvider>
   }
   return <ClerkAuthProvider>{children}</ClerkAuthProvider>
@@ -159,6 +162,7 @@ function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
 
   // Bridge state to cover the gap while Clerk is setting the active session
   const [isAuthenticating, setIsAuthenticating] = useState(false)
+  const [clerkTimedOut, setClerkTimedOut] = useState(false)
 
   // Load cached session data instantly for fast hydrations
   const [cachedData, setCachedData] = useState<any>(() => {
@@ -170,9 +174,19 @@ function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
     }
   })
 
-  // Clerk loading state indicator
-  const isClerkLoaded = clerkAuth.isLoaded && clerk.client
-  const isLoading = !isClerkLoaded
+  // Clerk loading state indicator with a safety timeout fallback
+  const isClerkLoaded = clerkAuth.isLoaded && !!clerk.client
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!isClerkLoaded) {
+        setClerkTimedOut(true)
+      }
+    }, 3500)
+    return () => clearTimeout(timer)
+  }, [isClerkLoaded])
+
+  const isLoading = !isClerkLoaded && !clerkTimedOut
   const hasLocalActiveSession = isClerkLoaded ? (clerk.client?.sessions?.some((s: any) => s.status === "active") ?? false) : false
   const isAuthenticated = !!cachedData || (isClerkLoaded ? (!!clerkAuth.isSignedIn || isAuthenticating || hasLocalActiveSession) : false)
   

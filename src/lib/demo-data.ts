@@ -389,4 +389,9 @@ export function demoDelay<T>(value: T, ms = 400): Promise<T> {
   return new Promise(resolve => setTimeout(() => resolve(value), ms))
 }
 
-export const IS_DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true"
+const rawClerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || ""
+export const IS_DEMO_MODE =
+  import.meta.env.VITE_DEMO_MODE === "true" ||
+  !rawClerkKey ||
+  !rawClerkKey.startsWith("pk_") ||
+  rawClerkKey.includes("placeholder")
