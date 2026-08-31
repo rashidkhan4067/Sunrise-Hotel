@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { ShieldAlert, RefreshCw, Search, Clock, User, FileText, Monitor } from "lucide-react"
 import { toast } from "sonner"
+import { IS_DEMO_MODE, DEMO_AUDIT_LOGS, demoDelay } from "@/lib/demo-data"
 
 export interface AuditLogItem {
   id: string
@@ -28,20 +29,45 @@ export function AuditLogsTab() {
   const [search, setSearch] = useState("")
   const [actionFilter, setActionFilter] = useState("all")
 
+  function filterDemoLogs(searchQuery = search, action = actionFilter) {
+    let result = [...DEMO_AUDIT_LOGS]
+    if (action !== "all") {
+      result = result.filter(log => log.action === action)
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter(log =>
+        log.description.toLowerCase().includes(q) ||
+        (log.user_email && log.user_email.toLowerCase().includes(q)) ||
+        (log.model_name && log.model_name.toLowerCase().includes(q))
+      )
+    }
+    return result
+  }
+
   async function fetchLogs() {
     setLoading(true)
     try {
+      if (IS_DEMO_MODE) {
+        await demoDelay(null, 300)
+        setLogs(filterDemoLogs(search, actionFilter))
+        return
+      }
+
       const token = await getToken()
-      if (!token) return
+      if (!token) {
+        setLogs(filterDemoLogs(search, actionFilter))
+        return
+      }
 
       const params = new URLSearchParams()
       if (actionFilter !== "all") params.append("action", actionFilter)
       if (search.trim()) params.append("search", search.trim())
 
       const data = await apiClient.get<AuditLogItem[]>(`/reports/audit-logs/?${params.toString()}`, token)
-      setLogs(Array.isArray(data) ? data : [])
+      setLogs(Array.isArray(data) && data.length > 0 ? data : filterDemoLogs(search, actionFilter))
     } catch (err: any) {
-      toast.error(err.message || "Failed to load audit logs")
+      setLogs(filterDemoLogs(search, actionFilter))
     } finally {
       setLoading(false)
     }

@@ -383,6 +383,132 @@ export function getDemoFolio(bookingId: string) {
   }
 }
 
+// ─── Demo Report Data ─────────────────────────────────────────────────────────
+
+export const DEMO_REPORT_SUMMARY = {
+  totalBookings: 184,
+  totalRevenue: 2845000,
+  occupancyRate: 82.5,
+  activeGuests: 38,
+  financials: {
+    adr: 16850,
+    revpar: 13900,
+    alos: 3.4,
+    roomRevenue: 2450000,
+    taxRevenue: 395000,
+  },
+  forecasting: {
+    projectedRevenueNext30Days: 3420000,
+    forwardBookingsCount: 126,
+  },
+  occupancyByRoomType: [
+    { roomType: "Single Room", totalRooms: 4, occupiedRooms: 3, occupancyRate: 75 },
+    { roomType: "Double Room", totalRooms: 5, occupiedRooms: 4, occupancyRate: 80 },
+    { roomType: "Twin Room", totalRooms: 2, occupiedRooms: 2, occupancyRate: 100 },
+    { roomType: "Deluxe Suite", totalRooms: 4, occupiedRooms: 3, occupancyRate: 75 },
+    { roomType: "Presidential Suite", totalRooms: 3, occupiedRooms: 3, occupancyRate: 100 },
+    { roomType: "Family Suite", totalRooms: 3, occupiedRooms: 2, occupancyRate: 67 },
+  ],
+}
+
+export const DEMO_REPORT_ROWS = [
+  { date: "2026-08-01", bookings: 12, revenue: 198000, checkIns: 8, checkOuts: 4, occupancyPct: 85, avgStay: 3.2 },
+  { date: "2026-08-02", bookings: 15, revenue: 245000, checkIns: 10, checkOuts: 6, occupancyPct: 90, avgStay: 3.5 },
+  { date: "2026-08-03", bookings: 14, revenue: 215000, checkIns: 7, checkOuts: 8, occupancyPct: 80, avgStay: 3.1 },
+  { date: "2026-08-04", bookings: 18, revenue: 310000, checkIns: 12, checkOuts: 5, occupancyPct: 95, avgStay: 4.0 },
+  { date: "2026-08-05", bookings: 11, revenue: 175000, checkIns: 6, checkOuts: 7, occupancyPct: 75, avgStay: 2.8 },
+  { date: "2026-08-06", bookings: 16, revenue: 260000, checkIns: 9, checkOuts: 6, occupancyPct: 88, avgStay: 3.6 },
+  { date: "2026-08-07", bookings: 20, revenue: 340000, checkIns: 14, checkOuts: 8, occupancyPct: 100, avgStay: 3.8 },
+  { date: "2026-08-08", bookings: 17, revenue: 285000, checkIns: 11, checkOuts: 9, occupancyPct: 92, avgStay: 3.4 },
+  { date: "2026-08-09", bookings: 13, revenue: 205000, checkIns: 8, checkOuts: 7, occupancyPct: 80, avgStay: 3.0 },
+  { date: "2026-08-10", bookings: 19, revenue: 325000, checkIns: 13, checkOuts: 6, occupancyPct: 96, avgStay: 4.1 },
+  { date: "2026-08-11", bookings: 14, revenue: 230000, checkIns: 7, checkOuts: 8, occupancyPct: 82, avgStay: 3.3 },
+  { date: "2026-08-12", bookings: 16, revenue: 270000, checkIns: 10, checkOuts: 7, occupancyPct: 89, avgStay: 3.7 },
+]
+
+export const DEMO_AUDIT_LOGS = [
+  {
+    id: "LOG-1001",
+    user_email: "admin@sunrise.com",
+    action: "CHECK_IN",
+    model_name: "Booking",
+    object_id: "BK-0002",
+    description: "Checked in guest Ayesha Siddiqui to Room 102 (Single)",
+    ip_address: "192.168.1.45",
+    timestamp: "2026-08-05T10:14:22Z",
+  },
+  {
+    id: "LOG-1002",
+    user_email: "receptionist@sunrise.com",
+    action: "ADD_PAYMENT",
+    model_name: "Payment",
+    object_id: "PAY-8831",
+    description: "Processed POS Credit Card payment of ₨85,000 for BK-0009",
+    ip_address: "192.168.1.50",
+    timestamp: "2026-08-05T09:45:10Z",
+  },
+  {
+    id: "LOG-1003",
+    user_email: "admin@sunrise.com",
+    action: "TOGGLE_CLEAN",
+    model_name: "Room",
+    object_id: "101",
+    description: "Marked Room 101 as CLEAN & Inspected by Housekeeping",
+    ip_address: "192.168.1.45",
+    timestamp: "2026-08-05T08:30:00Z",
+  },
+  {
+    id: "LOG-1004",
+    user_email: "receptionist@sunrise.com",
+    action: "CHECK_OUT",
+    model_name: "Booking",
+    object_id: "BK-0015",
+    description: "Checked out guest Sobia Iqbal from Room 12 with settled folio",
+    ip_address: "192.168.1.50",
+    timestamp: "2026-08-04T12:05:40Z",
+  },
+  {
+    id: "LOG-1005",
+    user_email: "admin@sunrise.com",
+    action: "STAFF_CREATED",
+    model_name: "Staff",
+    object_id: "USR-04",
+    description: "Created staff profile for Fatima Noor (Receptionist)",
+    ip_address: "192.168.1.45",
+    timestamp: "2026-08-04T11:20:15Z",
+  },
+  {
+    id: "LOG-1006",
+    user_email: "admin@sunrise.com",
+    action: "ADD_CHARGE",
+    model_name: "FolioItem",
+    object_id: "FL-3301",
+    description: "Added room service dining charge ₨14,500 to Room 401 (Presidential Suite)",
+    ip_address: "192.168.1.45",
+    timestamp: "2026-08-03T21:15:00Z",
+  },
+  {
+    id: "LOG-1007",
+    user_email: "receptionist@sunrise.com",
+    action: "CHECK_IN",
+    model_name: "Booking",
+    object_id: "BK-0007",
+    description: "Checked in guest Faisal Khan to Room 502 (Family Suite)",
+    ip_address: "192.168.1.50",
+    timestamp: "2026-08-03T15:30:12Z",
+  },
+  {
+    id: "LOG-1008",
+    user_email: "admin@sunrise.com",
+    action: "TOGGLE_INSPECT",
+    model_name: "Room",
+    object_id: "302",
+    description: "Supervisor inspection passed for Room 302 (Deluxe)",
+    ip_address: "192.168.1.45",
+    timestamp: "2026-08-02T16:00:00Z",
+  },
+]
+
 // ─── Helper: simulate async delay ─────────────────────────────────────────────
 
 export function demoDelay<T>(value: T, ms = 400): Promise<T> {
@@ -395,3 +521,4 @@ export const IS_DEMO_MODE =
   !rawClerkKey ||
   !rawClerkKey.startsWith("pk_") ||
   rawClerkKey.includes("placeholder")
+
