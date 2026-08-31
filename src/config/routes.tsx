@@ -7,52 +7,74 @@ import { ProtectedRoute } from '@/components/router/protected-route'
 import { useAuth } from '@/contexts/auth-context'
 import { RouteProgress } from '@/components/route-progress'
 
+// Resilient dynamic module importer with auto-retry and cache-refresh on deployment updates
+function lazyWithRetry<T extends React.ComponentType<any>>(
+  factory: () => Promise<{ default: T }>
+) {
+  return lazy(async () => {
+    try {
+      return await factory()
+    } catch (error: any) {
+      console.warn("Dynamic import failed (stale deployment chunk), refreshing page...", error)
+      const pageKey = "chunk_retry_" + window.location.pathname
+      const hasRetried = sessionStorage.getItem(pageKey)
+      if (!hasRetried) {
+        sessionStorage.setItem(pageKey, "true")
+        window.location.reload()
+        return new Promise<{ default: T }>(() => {})
+      }
+      sessionStorage.removeItem(pageKey)
+      throw error
+    }
+  })
+}
+
 // ─── Admin Pages ───────────────────────────────────────────────
-const Dashboard = lazy(() => import('@/app/admin/dashboard/page'))
-const Reports = lazy(() => import('@/app/admin/reports/page'))
-const Calendar = lazy(() => import('@/app/admin/calendar/page'))
-const Users = lazy(() => import('@/app/admin/users/page'))
-const Rooms = lazy(() => import('@/app/admin/rooms/page'))
-const RoomDetail = lazy(() => import('@/app/admin/rooms/detail-page'))
-const Bookings = lazy(() => import('@/app/admin/bookings/page'))
-const Guests = lazy(() => import('@/app/admin/guests/page'))
+const Dashboard = lazyWithRetry(() => import('@/app/admin/dashboard/page'))
+const Reports = lazyWithRetry(() => import('@/app/admin/reports/page'))
+const Calendar = lazyWithRetry(() => import('@/app/admin/calendar/page'))
+const Users = lazyWithRetry(() => import('@/app/admin/users/page'))
+const Rooms = lazyWithRetry(() => import('@/app/admin/rooms/page'))
+const RoomDetail = lazyWithRetry(() => import('@/app/admin/rooms/detail-page'))
+const Bookings = lazyWithRetry(() => import('@/app/admin/bookings/page'))
+const Guests = lazyWithRetry(() => import('@/app/admin/guests/page'))
 
 // ─── Receptionist Pages ─────────────────────────────────────────
-const ReceptionistDashboard = lazy(() => import('@/app/receptionist/dashboard/page'))
-const ReceptionistCalendar = lazy(() => import('@/app/receptionist/calendar/page'))
-const ReceptionistRooms = lazy(() => import('@/app/receptionist/rooms/page'))
-const ReceptionistRoomDetail = lazy(() => import('@/app/receptionist/rooms/detail-page'))
-const ReceptionistBookings = lazy(() => import('@/app/receptionist/bookings/page'))
-const ReceptionistGuests = lazy(() => import('@/app/receptionist/guests/page'))
+const ReceptionistDashboard = lazyWithRetry(() => import('@/app/receptionist/dashboard/page'))
+const ReceptionistCalendar = lazyWithRetry(() => import('@/app/receptionist/calendar/page'))
+const ReceptionistRooms = lazyWithRetry(() => import('@/app/receptionist/rooms/page'))
+const ReceptionistRoomDetail = lazyWithRetry(() => import('@/app/receptionist/rooms/detail-page'))
+const ReceptionistBookings = lazyWithRetry(() => import('@/app/receptionist/bookings/page'))
+const ReceptionistGuests = lazyWithRetry(() => import('@/app/receptionist/guests/page'))
 
 // ─── Settings Pages ────────────────────────────────────────────
-const HotelSettings = lazy(() => import('@/app/admin/settings/hotel/page'))
-const UserSettings = lazy(() => import('@/app/admin/settings/user/page'))
-const PasswordSettings = lazy(() => import('@/app/admin/settings/password/page'))
+const HotelSettings = lazyWithRetry(() => import('@/app/admin/settings/hotel/page'))
+const UserSettings = lazyWithRetry(() => import('@/app/admin/settings/user/page'))
+const PasswordSettings = lazyWithRetry(() => import('@/app/admin/settings/password/page'))
 
 // ─── Auth Pages (utility routes — not sidebar items) ───────────
-const SignIn = lazy(() => import('@/app/auth/sign-in/page'))
-const SignUp = lazy(() => import('@/app/auth/sign-up/page'))
-const ForgotPassword = lazy(() => import('@/app/auth/forgot-password/page'))
-const SSOCallback = lazy(() => import('@/app/auth/sso-callback/page'))
+const SignIn = lazyWithRetry(() => import('@/app/auth/sign-in/page'))
+const SignUp = lazyWithRetry(() => import('@/app/auth/sign-up/page'))
+const ForgotPassword = lazyWithRetry(() => import('@/app/auth/forgot-password/page'))
+const SSOCallback = lazyWithRetry(() => import('@/app/auth/sso-callback/page'))
 
 // ─── Error Pages (utility routes — not sidebar items) ──────────
-const Unauthorized = lazy(() => import('@/app/errors/unauthorized/page'))
-const Forbidden = lazy(() => import('@/app/errors/forbidden/page'))
-const NotFound = lazy(() => import('@/app/errors/not-found/page'))
-const InternalServerError = lazy(() => import('@/app/errors/internal-server-error/page'))
-const UnderMaintenance = lazy(() => import('@/app/errors/under-maintenance/page'))
+const Unauthorized = lazyWithRetry(() => import('@/app/errors/unauthorized/page'))
+const Forbidden = lazyWithRetry(() => import('@/app/errors/forbidden/page'))
+const NotFound = lazyWithRetry(() => import('@/app/errors/not-found/page'))
+const InternalServerError = lazyWithRetry(() => import('@/app/errors/internal-server-error/page'))
+const UnderMaintenance = lazyWithRetry(() => import('@/app/errors/under-maintenance/page'))
 
 // ─── Guest Pages ───────────────────────────────────────────────
-const GuestDashboard = lazy(() => import('@/app/guest/dashboard/page'))
-const GuestBookings = lazy(() => import('@/app/guest/bookings/page'))
+const GuestDashboard = lazyWithRetry(() => import('@/app/guest/dashboard/page'))
+const GuestBookings = lazyWithRetry(() => import('@/app/guest/bookings/page'))
 
 // ─── Support & Live Help Desk ──────────────────────────────────
-const AdminSupport = lazy(() => import('@/app/admin/support/page'))
-const GuestSupport = lazy(() => import('@/app/guest/support/page'))
+const AdminSupport = lazyWithRetry(() => import('@/app/admin/support/page'))
+const GuestSupport = lazyWithRetry(() => import('@/app/guest/support/page'))
 
 // ─── Landing Page ──────────────────────────────────────────────
-const LandingPage = lazy(() => import('@/components/landing').then(m => ({ default: m.LandingPage })))
+const LandingPage = lazyWithRetry(() => import('@/components/landing').then(m => ({ default: m.LandingPage })))
 
 export interface RouteConfig {
   path: string
