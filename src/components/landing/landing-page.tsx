@@ -9,8 +9,14 @@ import { ExperiencesSection } from "./sections/experiences-section"
 import { TestimonialsSection } from "./sections/testimonials-section"
 import { FaqContactSection } from "./sections/faq-contact-section"
 import { FooterSection } from "./sections/footer-section"
+import { useDocumentTitle } from "@/hooks/use-document-title"
 
 export function LandingPage() {
+  useDocumentTitle(
+    "Forbes 5-Star Oceanfront Luxury Sanctuary & Resort",
+    "Discover an unrivaled luxury resort experience with oceanfront villas, Michelin-star dining, holistic wellness retreats, and bespoke butler service at Sunrise Hotel."
+  )
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans antialiased selection:bg-primary/20 scroll-smooth transition-colors duration-300">
       <Navbar />

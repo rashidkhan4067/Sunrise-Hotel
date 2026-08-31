@@ -25,7 +25,7 @@ interface BaseLayoutProps {
 }
 
 export function BaseLayout({ children, title, description, actions, role }: BaseLayoutProps) {
-  useDocumentTitle(title)
+  useDocumentTitle(title, description)
   const { config } = useSidebarConfig()
   const location = useLocation()
   const navigate = useNavigate()
